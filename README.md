@@ -1,39 +1,64 @@
-# FaultLine: visual simulator
+# FaultLine
 
 > Every manual becomes a technician on shift.
 
-A base visual demo for SaaSathon 2. It has:
-- a live, animated plant floor
-- a phone-first operator flow reached by QR code
-- technician work orders
-- a fault simulator, and a "last week" replay that ends in AI insight cards
+FaultLine is AI maintenance software for small plants.
+1. An operator scans the QR code on a machine.
+2. They report the fault by photo, voice or text.
+3. They get safety-first fix steps drawn from that machine's own manual, each citing its page.
 
-## Run it
+If they can't fix it, one tap sends a pre-filled work order to a technician. A live floor board shows every machine. AI insight cards pick out repeat faults.
+
+**Live:** https://faultline-ashy.vercel.app. Built in 48 hours at SaaSathon 2 (University of Canterbury, 25–27 Sep 2026).
+
+| Route | What |
+|---|---|
+| `/` | Landing page and pricing |
+| `/floor` | Live plant floor: QR codes, simulator, replay of last week, AI insights |
+| `/m/[machineId]` | Operator view (mobile, no login): report by photo, voice or text, then cited triage |
+| `/work-orders` | Technician queue: assign, record root cause, close |
+| `/qr` | Printable QR stickers |
+
+## How the AI works
+1. **Photo** (`gpt-4.1-mini`, vision): reads the error code and display text, e.g. `PRINTHEAD OPEN`.
+2. **Voice:** live speech-to-text in the browser. Where that isn't supported, the recorded audio goes to `gpt-4o-mini-transcribe`.
+3. **Retrieval:** the report is embedded with `text-embedding-3-small` and matched against that machine's manual chunks in Supabase pgvector. Chunks containing the exact error code are added too.
+4. **Triage** (`gpt-4.1`, Structured Outputs):
+   - uses only the retrieved excerpts
+   - puts a safety step first
+   - every step cites its page with a verbatim quote
+   - steps citing pages that weren't retrieved are dropped
+   - fixes previously confirmed on the same machine are included as plant notes
+5. **Fallback:** if a machine has no manual, or the AI can't be reached, curated demo content is used, clearly labelled "Demo guidance".
+6. **Insights:** `gpt-4.1-mini` summarises last week's history and today's faults into pattern cards.
+
+Manuals loaded:
+- `cnc-01`: Genmitsu 3018-PROVer (50 pages)
+- `label-01`: Zebra ZD421/ZD621 (352 pages)
+
+## Stack
+- Next.js 16 (App Router), Tailwind v4, deployed on Vercel.
+- Supabase:
+  - Postgres with pgvector, and Storage for the manual PDFs
+  - Row-level security is on for every table with no policies, so all access goes through server routes using the secret key.
+- Live plant state is one versioned `plant_state` row, updated with optimistic concurrency. Every screen polls about once a second, and `lib/reducer.ts` holds all the state transitions.
+
+## Local development
 ```bash
 npm install
-npm run dev -- -H 0.0.0.0     # listen on your network so phones can connect
+cp .env.example .env.local        # add OpenAI and Supabase values
+npx supabase link --project-ref <ref>
+npx supabase db push              # applies supabase/migrations
+npm run ingest -- --machine cnc-01 --file manuals/cnc.pdf --title "Machine manual"
+npm run dev -- -H 0.0.0.0         # phones on the same Wi-Fi can scan the QR codes
 ```
-- On the projector, open `http://localhost:3000`.
-- Phones on the same Wi-Fi or hotspot open `http://<your-laptop-IP>:3000`. The on-screen QR codes use the address the floor page was opened with, so open the floor via your LAN IP (not `localhost`) for the codes to work from phones.
+- Without Supabase configured, the app falls back to in-memory state.
+- `OPENAI_BASE_URL` can point at an OpenAI-compatible gateway (e.g. OmniRoute) for local development.
 
-## Demo flow
-1. Click **Simulator**, then **CNC-01 · Y-axis hard limit**. The tile goes amber and the conveyors either side stop.
-2. Click **Show QR codes**. A judge scans CNC-01's code and taps **Report ALARM:1**. The triage appears with a safety step and cited manual pages; tap **Manual p.42** to show the page.
-3. Tick steps, then tap **Resolved** (the tile goes green) or **Escalate** (the tile goes blue and a work order appears at `/work-orders`).
-4. On `/work-orders`, assign a technician, type a root cause, and close it.
-5. Click **Replay last week**: 7 days replay in 30 seconds, then the insight cards appear.
+## Deploy
+```bash
+npx vercel deploy --prod --yes
+```
+Production environment variables: `OPENAI_API_KEY`, `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SECRET_KEY`.
 
-## How it's built
-- Next.js (App Router) + Tailwind.
-- State lives in `app/api/state` (in memory, one server process), and the pure state logic in `lib/reducer.ts`. Every screen polls about once a second.
-- `lib/data.ts` holds the demo plant, fault cards, triage content, the seeded week and the insights.
-- **What's simulated:**
-  - The AI: `matchCard` routes the operator's words to a fault card.
-  - The manual pages (`components/ManualSheet.tsx`).
-  - The shared state.
-- **Next steps (see the build spec):**
-  1. Replace the in-memory store with Supabase realtime.
-  2. Replace `matchCard` with `/api/report`: embeddings over the real manual PDFs, plus Structured Outputs.
-  3. Render real PDF pages with react-pdf.
-
-> On Vercel, the in-memory store isn't shared between server instances. For the live demo, run it on the laptop or finish the Supabase swap.
+Vendor manuals are not committed (`/manuals` is gitignored). They're stored privately in Supabase Storage.

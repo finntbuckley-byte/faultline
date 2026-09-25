@@ -18,7 +18,19 @@ const Body = z.object({
   audio: z.string().startsWith("data:audio/").max(4_000_000).optional(),
 });
 
+// Light per-instance rate limit so a scanned QR code can't burn through API credit.
+const hits = new Map<string, number[]>();
+function limited(req: Request, max = 12, windowMs = 60_000) {
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0].trim() || "local";
+  const now = Date.now();
+  const recent = (hits.get(ip) ?? []).filter((t) => now - t < windowMs);
+  recent.push(now);
+  hits.set(ip, recent);
+  return recent.length > max;
+}
+
 export async function POST(req: Request) {
+  if (limited(req)) return NextResponse.json({ error: "Too many reports, wait a minute." }, { status: 429 });
   const parsed = Body.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Invalid report" }, { status: 400 });
   const { machineId, faultId, photo, audio } = parsed.data;
