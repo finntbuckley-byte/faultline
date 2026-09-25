@@ -1,36 +1,40 @@
 import { NextResponse } from "next/server";
-import { initialState, reduce } from "@/lib/reducer";
-import type { Action, FactoryState } from "@/lib/types";
+import { z } from "zod";
+import { applyAction, getState } from "@/lib/server/store";
+import type { Action } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
-/**
- * In-memory shared state so a projector, a phone and a laptop see the same floor.
- * Works when one server process runs (npm run dev / npm start on a laptop).
- * Swap for Supabase realtime before relying on it in a multi-instance deploy.
- */
-const g = globalThis as unknown as { __faultline?: FactoryState };
-const get = () => (g.__faultline ??= initialState());
+const id = z.string().min(1).max(64);
+// Clients may send every action except "report", which must go through /api/report (AI triage).
+const ActionSchema = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("inject"), cardId: id }),
+  z.object({ type: z.literal("step"), faultId: id, index: z.number().int().min(0).max(20), outcome: z.enum(["worked", "failed"]).nullable() }),
+  z.object({ type: z.literal("resolve"), faultId: id, note: z.string().max(500).optional() }),
+  z.object({ type: z.literal("escalate"), faultId: id }),
+  z.object({ type: z.literal("start"), faultId: id, assignee: z.string().min(1).max(60) }),
+  z.object({ type: z.literal("close"), faultId: id, rootCause: z.string().min(1).max(500) }),
+  z.object({ type: z.literal("reset") }),
+]);
 
-const ACTIONS = new Set(["inject", "report", "step", "resolve", "escalate", "start", "close", "reset"]);
+const noStore = { "Cache-Control": "no-store" };
 
 export async function GET() {
-  return NextResponse.json(get(), { headers: { "Cache-Control": "no-store" } });
+  try {
+    return NextResponse.json(await getState(), { headers: noStore });
+  } catch (e) {
+    console.error("state GET failed", e);
+    return NextResponse.json({ error: "State unavailable" }, { status: 503, headers: noStore });
+  }
 }
 
 export async function POST(req: Request) {
-  let action: Action;
+  const parsed = ActionSchema.safeParse(await req.json().catch(() => null));
+  if (!parsed.success) return NextResponse.json({ error: "Invalid action" }, { status: 400 });
   try {
-    action = (await req.json()) as Action;
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    return NextResponse.json(await applyAction(parsed.data as Action), { headers: noStore });
+  } catch (e) {
+    console.error("state POST failed", e);
+    return NextResponse.json({ error: "Couldn't save that change. Try again." }, { status: 503, headers: noStore });
   }
-  if (!action || typeof action !== "object" || !ACTIONS.has(action.type)) {
-    return NextResponse.json({ error: "Unknown action" }, { status: 400 });
-  }
-  if (action.type === "report" && (typeof action.report !== "string" || action.report.length > 2000)) {
-    return NextResponse.json({ error: "Report too long" }, { status: 400 });
-  }
-  g.__faultline = reduce(get(), action, Date.now());
-  return NextResponse.json(g.__faultline, { headers: { "Cache-Control": "no-store" } });
 }

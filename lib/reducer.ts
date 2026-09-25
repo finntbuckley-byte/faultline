@@ -37,25 +37,29 @@ export function reduce(s: FactoryState, a: Action, now: number): FactoryState {
 
     case "report": {
       const active = s.machines.find((m) => m.id === a.machineId)?.alarm;
-      const card = (active && !a.report.trim() ? cardById(active) : undefined) ?? matchCard(a.machineId, a.report || active || "");
-      if (!card) return s;
+      const activeCard = active ? cardById(active) : undefined;
+      const card = (activeCard && !a.report.trim() ? activeCard : undefined) ?? matchCard(a.machineId, a.report || active || "");
+      const triage = a.triage ?? card?.triage;
+      if (!triage) return s;
+      const report = a.report.trim() || card?.symptom || "Fault reported";
       const fault: Fault = {
         id: a.faultId,
         machineId: a.machineId,
-        cardId: card.id,
+        cardId: card?.id ?? "ai",
         source: "operator",
-        report: a.report.trim() || card.symptom,
-        code: card.code,
-        triage: card.triage,
-        steps: card.triage.steps.map(() => null),
+        grounded: Boolean(a.grounded),
+        report,
+        code: a.code ?? card?.code,
+        triage,
+        steps: triage.steps.map(() => null),
         status: "open",
         createdAt: now,
       };
-      const status: MachineStatus = card.triage.severity === "stop_now" ? "down" : "fault";
+      const status: MachineStatus = triage.severity === "stop_now" ? "down" : "fault";
       return next({
         faults: [fault, ...s.faults],
         machines: setStatus(s, a.machineId, status),
-        feed: withFeed(s, { at: now, machineId: a.machineId, text: `Operator reported on ${nameOf(s, a.machineId)}: "${(a.report.trim() || card.symptom).slice(0, 60)}"`, tone: "warn" }),
+        feed: withFeed(s, { at: now, machineId: a.machineId, text: `Operator reported on ${nameOf(s, a.machineId)}: "${report.slice(0, 60)}"`, tone: "warn" }),
       });
     }
 

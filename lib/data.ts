@@ -7,8 +7,8 @@ import type { FaultCard, Machine } from "./types";
 export const MACHINES: Machine[] = [
   { id: "saw-01", name: "Saw-01", model: "Bandsaw headrig", kind: "saw", location: "Bay 1", manual: "Headrig Bandsaw Operator Manual", x: 110, y: 200, status: "running" },
   { id: "infeed", name: "Infeed", model: "Belt conveyor + VFD", kind: "conveyor", location: "Bay 1", manual: "Conveyor Drive (VFD) Manual", x: 300, y: 200, status: "running" },
-  { id: "cnc-01", name: "CNC-01", model: "3-axis router", kind: "cnc", location: "Bay 2", manual: "CNC Router Operator Manual", x: 490, y: 200, status: "running" },
-  { id: "label-01", name: "Label-01", model: "Thermal label printer", kind: "printer", location: "Bay 3", manual: "Thermal Label Printer User Guide", x: 680, y: 200, status: "running" },
+  { id: "cnc-01", name: "CNC-01", model: "Genmitsu 3018-PROVer CNC router", kind: "cnc", location: "Bay 2", manual: "Genmitsu 3018-PROVer User Manual", x: 490, y: 200, status: "running" },
+  { id: "label-01", name: "Label-01", model: "Zebra ZD421 label printer", kind: "printer", location: "Bay 3", manual: "Zebra ZD421/ZD621 User Guide", x: 680, y: 200, status: "running" },
   { id: "packing", name: "Packing", model: "Strapping station", kind: "packing", location: "Dispatch", manual: "Strapping Machine Manual", x: 880, y: 200, status: "running" },
   { id: "compressor", name: "Compressor", model: "Rotary screw, 11 kW", kind: "compressor", location: "Plant room", manual: "Rotary Screw Compressor Manual", x: 230, y: 460, status: "running" },
   { id: "dust", name: "Dust extractor", model: "Bag filter, 7.5 kW", kind: "extractor", location: "Plant room", manual: "Dust Extraction System Manual", x: 520, y: 460, status: "running" },
@@ -23,7 +23,7 @@ export const FAULT_CARDS: FaultCard[] = [
     machineId: "cnc-01",
     label: "Y-axis hard limit",
     code: "ALARM:1",
-    symptom: "Controller shows ALARM:1, gantry stopped mid-cut",
+    symptom: "Controller in Alarm state after the gantry hit a limit switch mid-cut",
     keywords: ["alarm", "limit", "alarm:1", "stopped", "gantry", "end"],
     triage: {
       summary: "Hard limit triggered: an axis reached its end-stop switch and the controller halted motion.",
@@ -43,8 +43,8 @@ export const FAULT_CARDS: FaultCard[] = [
     id: "label-head-open",
     machineId: "label-01",
     label: "Print head open",
-    code: "HEAD OPEN",
-    symptom: "Printer light flashing red, labels not printing",
+    code: "PRINTHEAD OPEN",
+    symptom: "Printer status light red, display says printhead open, labels not printing",
     keywords: ["head", "open", "label", "print", "red", "flashing"],
     triage: {
       summary: "The printer has detected an open print head and paused printing.",

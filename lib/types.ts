@@ -49,6 +49,8 @@ export interface Fault {
   machineId: string;
   cardId: string;
   source: "operator" | "sim";
+  /** True when the triage came from the real manual via retrieval, false for demo fallback content. */
+  grounded?: boolean;
   report: string;
   code?: string;
   triage: Triage;
@@ -77,7 +79,7 @@ export interface FactoryState {
 
 export type Action =
   | { type: "inject"; cardId: string }
-  | { type: "report"; machineId: string; report: string; faultId: string }
+  | { type: "report"; machineId: string; report: string; faultId: string; triage?: Triage; code?: string; grounded?: boolean }
   | { type: "step"; faultId: string; index: number; outcome: StepOutcome }
   | { type: "resolve"; faultId: string; note?: string }
   | { type: "escalate"; faultId: string }

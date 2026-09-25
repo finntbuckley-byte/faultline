@@ -39,3 +39,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# vendor manuals (copyrighted; stored in Supabase Storage, not git)
+/manuals/
+!.env.example

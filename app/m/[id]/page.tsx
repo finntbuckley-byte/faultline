@@ -10,7 +10,24 @@ import { newId, useFactory } from "@/lib/useFactory";
 import type { TriageStep } from "@/lib/types";
 
 type Mode = "idle" | "thinking" | "result";
-const THINK_MS = 1800;
+
+/** Downscale a photo in the browser so uploads stay small and fast on mobile data. */
+function downscale(file: File, max = 1600): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const k = Math.min(1, max / Math.max(img.width, img.height));
+      const c = document.createElement("canvas");
+      c.width = Math.round(img.width * k);
+      c.height = Math.round(img.height * k);
+      c.getContext("2d")?.drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(img.src);
+      resolve(c.toDataURL("image/jpeg", 0.85));
+    };
+    img.onerror = reject;
+    img.src = URL.createObjectURL(file);
+  });
+}
 
 interface SpeechRec {
   lang: string;
@@ -23,7 +40,8 @@ interface SpeechRec {
 
 export default function OperatorPage() {
   const { id } = useParams<{ id: string }>();
-  const { state, dispatch } = useFactory();
+  const { state, dispatch, replace } = useFactory();
+  const [error, setError] = useState<string | null>(null);
   const machine = state.machines.find((m) => m.id === id);
   const [mode, setMode] = useState<Mode>("idle");
   const [text, setText] = useState("");
@@ -50,23 +68,36 @@ export default function OperatorPage() {
     );
   }
 
-  const submit = (report: string) => {
+  const submit = async (report: string, photoData?: string) => {
     const fid = newId();
     setFaultId(fid);
+    setError(null);
     setMode("thinking");
-    dispatch({ type: "report", machineId: machine.id, report, faultId: fid });
-    setTimeout(() => setMode("result"), THINK_MS);
+    try {
+      const res = await fetch("/api/report", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ machineId: machine.id, faultId: fid, text: report, photo: photoData }),
+      });
+      if (!res.ok) throw new Error(String(res.status));
+      const body = await res.json();
+      replace(body.state);
+      setMode("result");
+    } catch {
+      setError("Couldn't reach FaultLine. Check your connection and try again.");
+      setMode("idle");
+    }
   };
 
-  const onPhoto = (file?: File) => {
+  const onPhoto = async (file?: File) => {
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      setPhoto(String(reader.result));
-      // Simulated vision step: the real build reads the error code from the photo.
-      submit(text || alarm?.code || "photo of display");
-    };
-    reader.readAsDataURL(file);
+    try {
+      const data = await downscale(file);
+      setPhoto(data);
+      submit(text, data);
+    } catch {
+      setError("Couldn't read that photo. Try again or type what you see.");
+    }
   };
 
   const toggleVoice = () => {
@@ -126,6 +157,7 @@ export default function OperatorPage() {
       {mode === "idle" && (
         <section className="mt-4 grid gap-3">
           <h2 className="text-lg font-semibold">What&apos;s wrong?</h2>
+          {error && <p role="alert" className="rounded-lg border border-bad/40 bg-bad/10 px-3 py-2 text-sm text-bad">{error}</p>}
           <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-line bg-panel-2 p-4 text-base font-medium active:scale-[0.99]">
             <span className="grid size-10 place-items-center rounded-lg bg-accent text-black"><svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M4 8h3l2-3h6l2 3h3v11H4z" /><circle cx="12" cy="13" r="3.5" /></svg></span>
             Photo of the screen
@@ -169,7 +201,10 @@ export default function OperatorPage() {
 
       {mode === "result" && fault && (
         <section className="fade-in mt-4 grid gap-3">
-          <div className={`rounded-xl border px-3 py-2 text-sm font-semibold ${SEVERITY[fault.triage.severity].className}`}>{SEVERITY[fault.triage.severity].label}</div>
+          <div className="flex items-center gap-2">
+            <div className={`flex-1 rounded-xl border px-3 py-2 text-sm font-semibold ${SEVERITY[fault.triage.severity].className}`}>{SEVERITY[fault.triage.severity].label}</div>
+            <span className={`rounded-xl border px-3 py-2 text-xs ${fault.grounded ? "border-ok/40 text-ok" : "border-line text-muted"}`}>{fault.grounded ? "From the manual" : "Demo guidance"}</span>
+          </div>
           <div className="rounded-xl border border-line bg-panel p-4">
             <p className="font-medium">{fault.triage.summary}</p>
             <p className="mt-1 text-sm text-muted">Likely cause: {fault.triage.likelyCause}</p>
@@ -234,7 +269,7 @@ export default function OperatorPage() {
         </div>
       )}
 
-      {sheet && <ManualSheet manual={machine.manual} page={sheet.page} quote={sheet.quote} onClose={() => setSheet(null)} />}
+      {sheet && <ManualSheet machineId={machine.id} manual={machine.manual} page={sheet.page} quote={sheet.quote} onClose={() => setSheet(null)} />}
     </main>
   );
 }

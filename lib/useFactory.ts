@@ -70,7 +70,13 @@ export function useFactory() {
     [],
   );
 
-  return { state, dispatch, online };
+  /** Adopt a state returned by another endpoint (e.g. /api/report). */
+  const replace = useCallback((s: FactoryState) => {
+    latest.current = s.version;
+    setState(s);
+  }, []);
+
+  return { state, dispatch, replace, online };
 }
 
 export const newId = () => Math.random().toString(36).slice(2, 10);
