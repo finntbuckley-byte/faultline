@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { cardById, matchCard } from "@/lib/data";
-import { readPhoto, retrieve, triage as runTriage, openai } from "@/lib/server/ai";
+import { readPhoto, retrieve, transcribe, triage as runTriage, openai } from "@/lib/server/ai";
 import { applyAction, getState } from "@/lib/server/store";
 import type { Triage } from "@/lib/types";
 
@@ -13,13 +13,15 @@ const Body = z.object({
   faultId: z.string().min(4).max(64),
   text: z.string().max(2000).default(""),
   // data:image/...;base64,... (client downsizes to ~1600px JPEG before sending)
-  photo: z.string().startsWith("data:image/").max(6_000_000).optional(),
+  photo: z.string().startsWith("data:image/").max(4_000_000).optional(),
+  // data:audio/...;base64,... recorded on devices without live speech recognition (max ~30 s)
+  audio: z.string().startsWith("data:audio/").max(4_000_000).optional(),
 });
 
 export async function POST(req: Request) {
   const parsed = Body.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Invalid report" }, { status: 400 });
-  const { machineId, faultId, photo } = parsed.data;
+  const { machineId, faultId, photo, audio } = parsed.data;
   let text = parsed.data.text.trim();
 
   const state = await getState();
@@ -27,6 +29,16 @@ export async function POST(req: Request) {
   if (!machine) return NextResponse.json({ error: "Unknown machine" }, { status: 404 });
   const machineLabel = `${machine.name} (${machine.model})`;
   const alarmCard = machine.alarm ? cardById(machine.alarm) : undefined;
+
+  // 0. Voice note -> text.
+  if (audio && openai()) {
+    try {
+      const heard = await transcribe(audio);
+      text = [text, heard].filter(Boolean).join(". ");
+    } catch (e) {
+      console.error("transcription failed", e);
+    }
+  }
 
   // 1. Photo -> error code / display text.
   let code: string | null = null;

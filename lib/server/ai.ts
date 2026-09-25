@@ -1,5 +1,5 @@
 import "server-only";
-import OpenAI from "openai";
+import OpenAI, { toFile } from "openai";
 import type { Triage } from "@/lib/types";
 import { admin } from "./supabase";
 
@@ -27,6 +27,22 @@ export async function embed(texts: string[]): Promise<number[][]> {
   if (!ai) throw new Error("OPENAI_API_KEY missing");
   const res = await ai.embeddings.create({ model: MODELS.embed, input: texts });
   return res.data.map((d) => d.embedding);
+}
+
+/** Transcribe a short voice note sent as a data URL. */
+export async function transcribe(dataUrl: string): Promise<string> {
+  const ai = openai();
+  if (!ai) throw new Error("OPENAI_API_KEY missing");
+  const [meta, b64] = dataUrl.split(",", 2);
+  const mime = meta.slice(5).split(";")[0] || "audio/webm";
+  const ext = mime.includes("mp4") || mime.includes("m4a") ? "m4a" : mime.includes("ogg") ? "ogg" : mime.includes("wav") ? "wav" : "webm";
+  const file = await toFile(Buffer.from(b64, "base64"), `voice.${ext}`, { type: mime });
+  const res = await ai.audio.transcriptions.create({
+    model: "gpt-4o-mini-transcribe",
+    file,
+    prompt: "A factory machine operator describing a fault: alarms, limit switches, printheads, belts, error codes.",
+  });
+  return res.text.trim();
 }
 
 export interface Reading {

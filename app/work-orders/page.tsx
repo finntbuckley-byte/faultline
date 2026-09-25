@@ -19,9 +19,9 @@ export default function WorkOrdersPage() {
   return (
     <div className="flex min-h-screen flex-col">
       <header className="flex items-center gap-4 border-b border-line px-4 py-3 sm:px-6">
-        <Logo />
+        <Link href="/" aria-label="FaultLine home"><Logo /></Link>
         <span className="text-sm text-muted">Work orders</span>
-        <Link href="/" className="ml-auto rounded-lg border border-line px-3 py-1.5 text-sm hover:border-muted">
+        <Link href="/floor" className="ml-auto rounded-lg border border-line px-3 py-1.5 text-sm hover:border-muted">
           Back to floor
         </Link>
       </header>

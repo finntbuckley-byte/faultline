@@ -50,6 +50,8 @@ export default function OperatorPage() {
   const [listening, setListening] = useState(false);
   const [sheet, setSheet] = useState<TriageStep | null>(null);
   const recRef = useRef<SpeechRec | null>(null);
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const stopTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const fault = state.faults.find((f) => f.id === faultId);
   const alarm = machine?.alarm ? cardById(machine.alarm) : undefined;
 
@@ -60,7 +62,7 @@ export default function OperatorPage() {
       <main className="grid min-h-screen place-items-center p-6 text-center">
         <div>
           <p className="text-muted">Loading machine…</p>
-          <Link href="/" className="mt-4 inline-block text-sm text-accent underline">
+          <Link href="/floor" className="mt-4 inline-block text-sm text-accent underline">
             Back to floor
           </Link>
         </div>
@@ -68,7 +70,7 @@ export default function OperatorPage() {
     );
   }
 
-  const submit = async (report: string, photoData?: string) => {
+  const submit = async (report: string, photoData?: string, audioData?: string) => {
     const fid = newId();
     setFaultId(fid);
     setError(null);
@@ -77,7 +79,7 @@ export default function OperatorPage() {
       const res = await fetch("/api/report", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ machineId: machine.id, faultId: fid, text: report, photo: photoData }),
+        body: JSON.stringify({ machineId: machine.id, faultId: fid, text: report, photo: photoData, audio: audioData }),
       });
       if (!res.ok) throw new Error(String(res.status));
       const body = await res.json();
@@ -100,15 +102,41 @@ export default function OperatorPage() {
     }
   };
 
+  /** Fallback for browsers without live speech recognition: record, then transcribe server-side. */
+  const recordAudio = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const rec = new MediaRecorder(stream);
+      const parts: Blob[] = [];
+      rec.ondataavailable = (e) => e.data.size && parts.push(e.data);
+      rec.onstop = () => {
+        stream.getTracks().forEach((t) => t.stop());
+        setListening(false);
+        clearTimeout(stopTimer.current);
+        const blob = new Blob(parts, { type: rec.mimeType || "audio/webm" });
+        const reader = new FileReader();
+        reader.onload = () => submit(text, undefined, String(reader.result));
+        reader.readAsDataURL(blob);
+      };
+      recorderRef.current = rec;
+      rec.start();
+      setListening(true);
+      stopTimer.current = setTimeout(() => rec.state === "recording" && rec.stop(), 30_000);
+    } catch {
+      setError("Microphone not available. Type what's happening instead.");
+    }
+  };
+
   const toggleVoice = () => {
     if (listening) {
       recRef.current?.stop();
+      if (recorderRef.current?.state === "recording") recorderRef.current.stop();
       return;
     }
     const w = window as unknown as { SpeechRecognition?: new () => SpeechRec; webkitSpeechRecognition?: new () => SpeechRec };
     const Ctor = w.SpeechRecognition ?? w.webkitSpeechRecognition;
     if (!Ctor) {
-      setText((t) => t || "Belt squealing on start-up");
+      recordAudio();
       return;
     }
     const rec = new Ctor();

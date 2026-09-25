@@ -110,3 +110,11 @@ body {
     animation: none;
   }
 }
+
+@media print {
+  html,
+  body {
+    background: #fff;
+    color: #000;
+  }
+}

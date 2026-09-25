@@ -1,205 +1,148 @@
-"use client";
-
 import Link from "next/link";
-import { useMemo, useState } from "react";
-import { FloorPlan } from "@/components/FloorPlan";
-import { ReplayBar, applyReplay, useReplay } from "@/components/Replay";
-import { Logo, MachineIcon, STATUS, StatusDot, timeAgo } from "@/components/ui";
-import { FAULT_CARDS, INSIGHTS } from "@/lib/data";
-import { useFactory } from "@/lib/useFactory";
-import { useNow, useOrigin } from "@/lib/useNow";
+import { Logo } from "@/components/ui";
 
-export default function FloorPage() {
-  const { state, dispatch, online } = useFactory();
-  const [showQr, setShowQr] = useState(false);
-  const [simOpen, setSimOpen] = useState(false);
-  const [showInsights, setShowInsights] = useState(false);
-  const [selected, setSelected] = useState<string | undefined>();
-  const origin = useOrigin();
-  const now = useNow();
-  const replay = useReplay(() => setShowInsights(true));
+const STEPS = [
+  {
+    n: "1",
+    title: "Scan the machine",
+    body: "Every machine gets a QR sticker. The operator scans it with their phone. No app and no login.",
+  },
+  {
+    n: "2",
+    title: "Say or snap the fault",
+    body: "Photograph the error screen, say what's happening, or type it. FaultLine reads the code off the display.",
+  },
+  {
+    n: "3",
+    title: "Fix it from the manual",
+    body: "Safety step first, then fix steps pulled from that machine's own manual, each citing the page it came from.",
+  },
+];
 
-  const machines = useMemo(
-    () => (replay.hour !== null ? applyReplay(state.machines, replay.hour) : state.machines),
-    [state.machines, replay.hour],
-  );
-  const counts = useMemo(() => {
-    const c = { running: 0, fault: 0, down: 0, tech: 0 };
-    machines.forEach((m) => c[m.status]++);
-    return c;
-  }, [machines]);
-  const openFaults = state.faults.filter((f) => f.status !== "resolved");
-  const resolved = state.faults.filter((f) => f.status === "resolved" && f.resolvedAt);
-  const mttr = resolved.length
-    ? Math.round(resolved.reduce((s, f) => s + ((f.resolvedAt ?? f.createdAt) - f.createdAt), 0) / resolved.length / 60000)
-    : null;
-  const sel = state.machines.find((m) => m.id === selected);
+const FEATURES = [
+  ["Grounded, never guessed", "Every step cites the page and passage it came from. If the manual doesn't cover the fault, FaultLine says so and escalates."],
+  ["Work orders that write themselves", "Escalate in one tap. The technician gets the symptom, photo, what was already tried, the likely cause and the parts to bring."],
+  ["A live floor", "Every machine on one screen, green to red in real time. Put it on the smoko-room TV."],
+  ["Knowledge that stays", "Every confirmed fix becomes a plant note that future triage uses. When your best fitter leaves, their fixes don't."],
+  ["Patterns you'd miss", "“CNC-01: 4 limit alarms this week, all night shift.” FaultLine spots repeat faults and tells you the root fix."],
+  ["Minutes to set up", "Upload the PDF manuals you already have and print the QR sheet. That's it."],
+];
 
+const PLANS = [
+  { name: "Starter", price: "Free", unit: "", body: "Up to 3 machines, 1 site. Full triage and work orders.", cta: "Start free" },
+  { name: "Plant", price: "$19", unit: "per machine / month", body: "Unlimited users, insights, knowledge capture, alerts.", cta: "Try the demo", featured: true },
+  { name: "Multi-site", price: "Talk to us", unit: "", body: "Several plants, sensor/PLC bridge, SSO and custom retention.", cta: "Contact" },
+];
+
+export default function Landing() {
   return (
     <div className="flex min-h-screen flex-col">
-      <header className="flex flex-wrap items-center gap-x-6 gap-y-3 border-b border-line px-4 py-3 sm:px-6">
+      <header className="mx-auto flex w-full max-w-6xl items-center gap-4 px-4 py-4 sm:px-6">
         <Logo />
-        <div className="text-sm text-muted">
-          Kauri Timber Co. · Christchurch plant <span className="mx-1">·</span>
-          <span className="font-mono tabular-nums text-text">{now ? new Date(now).toLocaleTimeString("en-NZ", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "--:--:--"}</span>
-        </div>
-        <nav className="ml-auto flex flex-wrap items-center gap-2 text-sm">
-          <span className={`flex items-center gap-1.5 rounded-full px-2 py-1 text-xs ${online ? "text-ok" : "text-bad"}`}>
-            <span className={`size-2 rounded-full ${online ? "bg-ok" : "bg-bad"}`} /> {online ? "Live" : "Offline"}
-          </span>
-          <button type="button" onClick={() => setShowQr((v) => !v)} className={`rounded-lg border px-3 py-1.5 ${showQr ? "border-accent bg-accent text-black" : "border-line hover:border-muted"}`}>
-            {showQr ? "Hide QR codes" : "Show QR codes"}
-          </button>
-          <button type="button" onClick={() => (replay.running ? replay.stop() : replay.start())} className="rounded-lg border border-line px-3 py-1.5 hover:border-muted">
-            {replay.running ? "Stop replay" : "Replay last week"}
-          </button>
-          <button type="button" onClick={() => setSimOpen((v) => !v)} className={`rounded-lg border px-3 py-1.5 ${simOpen ? "border-accent text-accent" : "border-line hover:border-muted"}`}>
-            Simulator
-          </button>
-          <Link href="/work-orders" className="rounded-lg border border-line px-3 py-1.5 hover:border-muted">
-            Work orders{openFaults.length ? <span className="ml-1.5 rounded-full bg-tech px-1.5 text-xs text-white">{openFaults.length}</span> : null}
+        <nav className="ml-auto flex items-center gap-2 text-sm">
+          <a href="#how" className="hidden rounded-lg px-3 py-1.5 text-muted hover:text-text sm:block">How it works</a>
+          <a href="#pricing" className="hidden rounded-lg px-3 py-1.5 text-muted hover:text-text sm:block">Pricing</a>
+          <Link href="/floor" className="rounded-lg bg-accent px-3 py-1.5 font-semibold text-black">
+            Open live demo
           </Link>
         </nav>
       </header>
 
-      <main className="grid flex-1 gap-4 p-4 sm:p-6 xl:grid-cols-[1fr_340px]">
-        <section className="flex min-w-0 flex-col gap-4">
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <Kpi label="Running" value={`${counts.running}/${machines.length}`} color="var(--ok)" />
-            <Kpi label="Faults" value={counts.fault + counts.down} color={counts.fault + counts.down ? "var(--bad)" : "var(--muted)"} />
-            <Kpi label="Technician jobs" value={counts.tech} color={counts.tech ? "var(--tech)" : "var(--muted)"} />
-            <Kpi label="Avg time to fix" value={mttr === null ? "–" : `${mttr} min`} color="var(--accent)" />
-          </div>
-
-          {replay.hour !== null && <ReplayBar hour={replay.hour} onStop={replay.stop} />}
-
-          <FloorPlan machines={machines} showQr={showQr} origin={origin} selected={selected} onSelect={(id) => setSelected((s) => (s === id ? undefined : id))} />
-
-          <div className="flex flex-wrap gap-4 text-xs text-muted">
-            {(Object.keys(STATUS) as (keyof typeof STATUS)[]).map((k) => (
-              <span key={k} className="flex items-center gap-1.5">
-                <StatusDot status={k} /> {STATUS[k].label}
-              </span>
-            ))}
-            <span className="ml-auto">Scan a machine&apos;s QR code to report a fault from your phone.</span>
-          </div>
-
-          {sel && (
-            <div className="fade-in flex flex-wrap items-center gap-4 rounded-xl border border-line bg-panel p-4">
-              <span style={{ color: STATUS[sel.status].color }}>
-                <MachineIcon kind={sel.kind} className="size-9" />
-              </span>
-              <div className="min-w-0 flex-1">
-                <div className="font-semibold">
-                  {sel.name} <span className="font-normal text-muted">· {sel.model} · {sel.location}</span>
-                </div>
-                <div className="text-sm text-muted">Manual: {sel.manual}</div>
-              </div>
-              <Link href={`/m/${sel.id}`} target="_blank" className="rounded-lg bg-accent px-3 py-2 text-sm font-semibold text-black">
-                Open operator view
+      <main className="mx-auto w-full max-w-6xl px-4 sm:px-6">
+        <section className="grid items-center gap-10 py-14 lg:grid-cols-[1.1fr_1fr] lg:py-20">
+          <div>
+            <p className="mb-4 inline-block rounded-full border border-accent/40 bg-accent/10 px-3 py-1 text-xs font-semibold uppercase tracking-widest text-accent">
+              AI maintenance for small plants
+            </p>
+            <h1 className="text-4xl font-semibold leading-tight tracking-tight sm:text-5xl">
+              Every manual becomes a technician on shift.
+            </h1>
+            <p className="mt-5 max-w-xl text-lg text-muted">
+              When a machine faults at 2am, the operator is alone with a 200-page PDF. FaultLine turns that manual into safety-first fix steps
+              in seconds, and turns every fault into a work order and a record your plant learns from.
+            </p>
+            <div className="mt-8 flex flex-wrap gap-3">
+              <Link href="/floor" className="rounded-xl bg-accent px-5 py-3 font-semibold text-black">
+                See the live floor
+              </Link>
+              <Link href="/m/cnc-01" className="rounded-xl border border-line px-5 py-3 font-semibold hover:border-muted">
+                Try the operator view
               </Link>
             </div>
-          )}
+            <p className="mt-4 text-sm text-muted">Demo plant: Kauri Timber Co., Christchurch. Real manuals, real AI.</p>
+          </div>
+
+          <div className="rounded-2xl border border-line bg-panel p-5 shadow-2xl">
+            <div className="mb-3 flex items-center justify-between text-xs text-muted">
+              <span>CNC-01 · Operator</span>
+              <span className="rounded-full bg-warn/15 px-2 py-0.5 font-semibold text-warn">Fault reported</span>
+            </div>
+            <div className="rounded-xl border-2 border-bad/60 bg-bad/10 p-3 text-sm">
+              <div className="text-xs font-semibold uppercase tracking-widest text-bad">Safety first</div>
+              Don&apos;t force the gantry by hand. Use the jog controls to move off the limit switch.
+            </div>
+            <ol className="mt-3 grid gap-2 text-sm">
+              {["Hit Unlock in Candle to clear the Alarm state.", "Set the jog step to 10.", "Jog away from the activated limit switch.", "Run a homing cycle to restore position."].map((t, i) => (
+                <li key={t} className="flex items-start gap-3 rounded-lg border border-line bg-panel-2 p-3">
+                  <span className="grid size-6 shrink-0 place-items-center rounded-full bg-bg text-xs font-semibold">{i + 1}</span>
+                  <span className="flex-1">{t}</span>
+                  <span className="rounded-md border border-accent/50 px-1.5 text-xs text-accent">p.42</span>
+                </li>
+              ))}
+            </ol>
+          </div>
         </section>
 
-        <aside className="flex flex-col gap-4">
-          {simOpen && (
-            <Panel title="Simulator" action={<button type="button" onClick={() => dispatch({ type: "reset" })} className="text-xs text-muted hover:text-text">Reset floor</button>}>
-              <p className="mb-3 text-xs text-muted">Put a fault on a machine&apos;s display. The operator then reports it by scanning its QR code.</p>
-              <div className="grid gap-2">
-                {FAULT_CARDS.map((c) => {
-                  const m = state.machines.find((x) => x.id === c.machineId);
-                  return (
-                    <button key={c.id} type="button" onClick={() => dispatch({ type: "inject", cardId: c.id })} className="flex items-center gap-3 rounded-lg border border-line bg-panel-2 px-3 py-2 text-left text-sm hover:border-bad/60">
-                      {m && <MachineIcon kind={m.kind} className="size-5 shrink-0 text-muted" />}
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate font-medium">{m?.name} · {c.label}</span>
-                        <span className="block truncate text-xs text-muted">{c.code ?? "No code: symptom only"}</span>
-                      </span>
-                    </button>
-                  );
-                })}
+        <section id="how" className="border-t border-line py-14">
+          <h2 className="text-2xl font-semibold">How it works</h2>
+          <div className="mt-6 grid gap-4 md:grid-cols-3">
+            {STEPS.map((s) => (
+              <div key={s.n} className="rounded-2xl border border-line bg-panel p-5">
+                <div className="grid size-9 place-items-center rounded-lg bg-accent font-semibold text-black">{s.n}</div>
+                <h3 className="mt-4 font-semibold">{s.title}</h3>
+                <p className="mt-1 text-sm text-muted">{s.body}</p>
               </div>
-            </Panel>
-          )}
+            ))}
+          </div>
+        </section>
 
-          {showInsights && (
-            <Panel title="Insights" action={<button type="button" onClick={() => setShowInsights(false)} className="text-xs text-muted hover:text-text">Hide</button>}>
-              <div className="grid gap-3">
-                {INSIGHTS.map((i) => (
-                  <div key={i.title} className="fade-in rounded-lg border border-accent/40 bg-accent/5 p-3">
-                    <div className="text-sm font-semibold text-accent">{i.title}</div>
-                    <p className="mt-1 text-xs text-muted">{i.evidence}</p>
-                    <p className="mt-2 text-sm">{i.recommendation}</p>
-                  </div>
-                ))}
+        <section className="border-t border-line py-14">
+          <h2 className="text-2xl font-semibold">Built for the plant floor</h2>
+          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {FEATURES.map(([t, b]) => (
+              <div key={t} className="rounded-2xl border border-line bg-panel p-5">
+                <h3 className="font-semibold">{t}</h3>
+                <p className="mt-1 text-sm text-muted">{b}</p>
               </div>
-            </Panel>
-          )}
+            ))}
+          </div>
+        </section>
 
-          <Panel title="Open faults">
-            {openFaults.length === 0 ? (
-              <p className="text-sm text-muted">No open faults. Everything is running.</p>
-            ) : (
-              <ul className="grid gap-2">
-                {openFaults.map((f) => {
-                  const m = state.machines.find((x) => x.id === f.machineId);
-                  return (
-                    <li key={f.id} className="rounded-lg border border-line bg-panel-2 p-3 text-sm">
-                      <div className="flex items-center gap-2">
-                        {m && <StatusDot status={m.status} />}
-                        <span className="font-medium">{m?.name}</span>
-                        <span className="ml-auto text-xs text-muted">{now ? timeAgo(f.createdAt, now) : ""}</span>
-                      </div>
-                      <div className="mt-1 text-muted">{f.triage.summary}</div>
-                      <div className="mt-1 text-xs capitalize text-muted">{f.status.replace("_", " ")}{f.assignee ? ` · ${f.assignee}` : ""}</div>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </Panel>
-
-          <Panel title="Live feed">
-            {state.feed.length === 0 ? (
-              <p className="text-sm text-muted">Events will appear here as they happen.</p>
-            ) : (
-              <ul className="grid max-h-80 gap-2 overflow-y-auto pr-1">
-                {state.feed.map((e) => (
-                  <li key={e.id} className="fade-in flex gap-2 text-sm">
-                    <span className={`mt-1.5 size-2 shrink-0 rounded-full ${e.tone === "bad" ? "bg-bad" : e.tone === "warn" ? "bg-warn" : e.tone === "good" ? "bg-ok" : "bg-tech"}`} />
-                    <span className="min-w-0 flex-1">{e.text}</span>
-                    <span className="shrink-0 text-xs text-muted">{now ? timeAgo(e.at, now) : ""}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Panel>
-        </aside>
+        <section id="pricing" className="border-t border-line py-14">
+          <h2 className="text-2xl font-semibold">Pricing</h2>
+          <p className="mt-1 text-muted">One avoided hour of downtime usually pays for a year. Prices in NZD, excl. GST.</p>
+          <div className="mt-6 grid gap-4 md:grid-cols-3">
+            {PLANS.map((p) => (
+              <div key={p.name} className={`flex flex-col rounded-2xl border p-5 ${p.featured ? "border-accent bg-accent/5" : "border-line bg-panel"}`}>
+                <h3 className="font-semibold">{p.name}</h3>
+                <div className="mt-3 text-3xl font-semibold">{p.price}</div>
+                <div className="h-5 text-sm text-muted">{p.unit}</div>
+                <p className="mt-3 flex-1 text-sm text-muted">{p.body}</p>
+                <Link href="/floor" className={`mt-5 rounded-xl py-2.5 text-center font-semibold ${p.featured ? "bg-accent text-black" : "border border-line"}`}>
+                  {p.cta}
+                </Link>
+              </div>
+            ))}
+          </div>
+        </section>
       </main>
-    </div>
-  );
-}
 
-function Kpi({ label, value, color }: { label: string; value: string | number; color: string }) {
-  return (
-    <div className="rounded-xl border border-line bg-panel px-4 py-3">
-      <div className="text-xs uppercase tracking-wider text-muted">{label}</div>
-      <div className="mt-1 text-2xl font-semibold tabular-nums" style={{ color }}>
-        {value}
-      </div>
+      <footer className="mt-auto border-t border-line">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-3 px-4 py-6 text-sm text-muted sm:px-6">
+          <Logo />
+          <span>Built in 48 hours at SaaSathon 2, University of Canterbury.</span>
+        </div>
+      </footer>
     </div>
-  );
-}
-
-function Panel({ title, action, children }: { title: string; action?: React.ReactNode; children: React.ReactNode }) {
-  return (
-    <section className="rounded-xl border border-line bg-panel p-4">
-      <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-xs font-semibold uppercase tracking-widest text-muted">{title}</h2>
-        {action}
-      </div>
-      {children}
-    </section>
   );
 }

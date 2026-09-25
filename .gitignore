@@ -43,3 +43,6 @@ next-env.d.ts
 # vendor manuals (copyrighted; stored in Supabase Storage, not git)
 /manuals/
 !.env.example
+
+# supabase cli local state
+/supabase/.temp/
