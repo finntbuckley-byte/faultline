@@ -6,7 +6,7 @@ import { Logo, MachineIcon, SEVERITY, STATUS, timeAgo } from "@/components/ui";
 import { useFactory } from "@/lib/useFactory";
 import { useNow } from "@/lib/useNow";
 
-const TECHS = ["Sam (fitter)", "Aroha (electrician)"];
+const TECHS = ["Sam", "Aroha"];
 
 export default function WorkOrdersPage() {
   const { state, dispatch } = useFactory();
@@ -18,60 +18,73 @@ export default function WorkOrdersPage() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <header className="flex items-center gap-4 border-b border-line px-4 py-3 sm:px-6">
-        <Link href="/" aria-label="FaultLine home"><Logo /></Link>
-        <span className="text-sm text-muted">Work orders</span>
-        <Link href="/floor" className="ml-auto rounded-lg border border-line px-3 py-1.5 text-sm hover:border-muted">
-          Back to floor
-        </Link>
+      <header className="glass sticky top-0 z-40 border-b border-line/70">
+        <div className="mx-auto flex h-14 max-w-[980px] items-center gap-4 px-5">
+          <Link href="/" aria-label="FaultLine home">
+            <Logo />
+          </Link>
+          <Link href="/floor" className="ml-auto rounded-full px-3 py-1.5 text-[13px] font-medium text-accent hover:bg-accent/10">
+            Back to floor
+          </Link>
+        </div>
       </header>
 
-      <main className="mx-auto grid w-full max-w-5xl gap-6 p-4 sm:p-6">
+      <main className="mx-auto grid w-full max-w-[980px] gap-10 px-5 py-10">
         <section>
-          <h1 className="mb-3 text-xl font-semibold">Open work orders</h1>
+          <h1 className="text-[32px] font-semibold">Work orders</h1>
+          <p className="mt-1 text-[17px] text-muted">
+            {orders.length === 0 ? "Nothing waiting on a technician." : `${orders.length} waiting on a technician.`}
+          </p>
+
           {orders.length === 0 ? (
-            <p className="rounded-xl border border-dashed border-line p-8 text-center text-muted">No work orders. When an operator escalates a fault it appears here, already filled in.</p>
+            <p className="mt-8 rounded-[28px] bg-panel px-8 py-14 text-center text-[17px] text-muted shadow-card">
+              When an operator taps &ldquo;Get a technician&rdquo;, the job lands here, already filled in.
+            </p>
           ) : (
-            <div className="grid gap-4">
+            <div className="mt-8 grid gap-5">
               {orders.map((f) => {
                 const m = state.machines.find((x) => x.id === f.machineId);
                 if (!m) return null;
                 const tried = f.triage.steps.map((s, i) => ({ s, o: f.steps[i] })).filter((x) => x.o);
                 return (
-                  <article key={f.id} className="fade-in rounded-2xl border border-tech/50 bg-panel p-5">
-                    <div className="flex flex-wrap items-center gap-3">
-                      <span style={{ color: STATUS[m.status].color }}>
-                        <MachineIcon kind={m.kind} className="size-8" />
+                  <article key={f.id} className="fade-in overflow-hidden rounded-[28px] bg-panel shadow-card">
+                    <div className="flex flex-wrap items-center gap-4 px-6 pt-6">
+                      <span className="grid size-12 place-items-center rounded-2xl bg-panel-2" style={{ color: STATUS[m.status].color }}>
+                        <MachineIcon kind={m.kind} className="size-7" />
                       </span>
                       <div className="min-w-0 flex-1">
-                        <h2 className="text-lg font-semibold">
-                          {m.name} <span className="font-normal text-muted">· {m.location}</span>
-                        </h2>
-                        <p className="text-sm text-muted">
-                          Reported {now ? timeAgo(f.createdAt, now) : ""} · {f.code ? <span className="font-mono">{f.code}</span> : "no code"}
+                        <h2 className="text-[20px] font-semibold">{m.name}</h2>
+                        <p className="text-[14px] text-muted">
+                          {m.location} · reported {now ? timeAgo(f.createdAt, now) : ""}
+                          {f.code ? (
+                            <>
+                              {" · "}
+                              <span className="font-mono">{f.code}</span>
+                            </>
+                          ) : null}
                         </p>
                       </div>
-                      <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${SEVERITY[f.triage.severity].className}`}>{SEVERITY[f.triage.severity].label}</span>
+                      <span className={`rounded-full px-3 py-1 text-[13px] font-semibold ${SEVERITY[f.triage.severity].className}`}>{SEVERITY[f.triage.severity].label}</span>
                     </div>
 
-                    <div className="mt-4 grid gap-4 md:grid-cols-2">
-                      <div className="grid gap-2 text-sm">
+                    <div className="grid gap-6 px-6 py-6 md:grid-cols-2">
+                      <dl className="grid gap-4 text-[15px]">
                         <Field label="Operator said">&ldquo;{f.report}&rdquo;</Field>
-                        <Field label="FaultLine diagnosis">{f.triage.summary}</Field>
+                        <Field label="Diagnosis">{f.triage.summary}</Field>
                         <Field label="Likely cause">{f.triage.likelyCause}</Field>
                         {f.triage.parts.length > 0 && <Field label="Bring">{f.triage.parts.join(", ")}</Field>}
-                      </div>
-                      <div className="text-sm">
-                        <div className="mb-1 text-xs uppercase tracking-wider text-muted">Already tried by operator</div>
+                      </dl>
+                      <div className="text-[15px]">
+                        <div className="text-[13px] text-muted">Already tried</div>
                         {tried.length === 0 ? (
-                          <p className="text-muted">Nothing marked yet.</p>
+                          <p className="mt-1 text-muted">Nothing marked yet.</p>
                         ) : (
-                          <ul className="grid gap-1.5">
+                          <ul className="mt-2 grid gap-2">
                             {tried.map(({ s, o }) => (
-                              <li key={s.text} className="flex gap-2">
-                                <span className={o === "worked" ? "text-ok" : "text-bad"}>{o === "worked" ? "✓" : "✗"}</span>
-                                <span>
-                                  {s.text} <span className="text-muted">(p.{s.page})</span>
+                              <li key={s.text} className="flex gap-2.5">
+                                <span className={`mt-0.5 grid size-5 shrink-0 place-items-center rounded-full text-[11px] text-white ${o === "worked" ? "bg-ok" : "bg-bad"}`}>{o === "worked" ? "✓" : "✕"}</span>
+                                <span className="leading-snug">
+                                  {s.text} <span className="text-muted">p.{s.page}</span>
                                 </span>
                               </li>
                             ))}
@@ -80,29 +93,33 @@ export default function WorkOrdersPage() {
                       </div>
                     </div>
 
-                    <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-line pt-4">
+                    <div className="flex flex-wrap items-center gap-3 border-t border-line bg-panel-2/60 px-6 py-4">
                       {f.status === "escalated" ? (
-                        TECHS.map((t) => (
-                          <button key={t} type="button" onClick={() => dispatch({ type: "start", faultId: f.id, assignee: t.split(" ")[0] })} className="rounded-lg bg-tech px-3 py-2 text-sm font-semibold text-white">
-                            Assign {t}
-                          </button>
-                        ))
+                        <>
+                          <span className="text-[15px] text-muted">Assign to</span>
+                          {TECHS.map((t) => (
+                            <button key={t} type="button" onClick={() => dispatch({ type: "start", faultId: f.id, assignee: t })} className="rounded-full bg-accent px-4 py-1.5 text-[15px] font-medium text-white active:opacity-80">
+                              {t}
+                            </button>
+                          ))}
+                        </>
                       ) : (
                         <>
-                          <span className="text-sm text-muted">{f.assignee} is on it.</span>
+                          <span className="text-[15px] text-muted">{f.assignee} is on it.</span>
                           <input
                             value={cause[f.id] ?? ""}
                             onChange={(e) => setCause((c) => ({ ...c, [f.id]: e.target.value }))}
                             placeholder="Root cause, e.g. loose Y switch wire"
-                            className="min-w-56 flex-1 rounded-lg border border-line bg-panel-2 px-3 py-2 text-sm"
+                            aria-label="Root cause"
+                            className="min-w-56 flex-1 rounded-full bg-panel px-4 py-2 text-[15px] shadow-card outline-none focus:ring-2 focus:ring-accent/40"
                           />
                           <button
                             type="button"
                             disabled={!cause[f.id]?.trim()}
                             onClick={() => dispatch({ type: "close", faultId: f.id, rootCause: cause[f.id].trim() })}
-                            className="rounded-lg bg-ok px-3 py-2 text-sm font-semibold text-black disabled:opacity-40"
+                            className="rounded-full bg-accent px-4 py-2 text-[15px] font-medium text-white disabled:opacity-30"
                           >
-                            Close work order
+                            Close job
                           </button>
                         </>
                       )}
@@ -116,17 +133,15 @@ export default function WorkOrdersPage() {
 
         {history.length > 0 && (
           <section>
-            <h2 className="mb-3 text-sm font-semibold uppercase tracking-widest text-muted">Recently resolved</h2>
-            <ul className="grid gap-2">
+            <h2 className="text-[22px] font-semibold">Recently fixed</h2>
+            <ul className="mt-4 divide-y divide-line overflow-hidden rounded-[22px] bg-panel shadow-card">
               {history.map((f) => {
                 const m = state.machines.find((x) => x.id === f.machineId);
                 return (
-                  <li key={f.id} className="flex flex-wrap gap-x-3 rounded-lg border border-line bg-panel px-4 py-2.5 text-sm">
+                  <li key={f.id} className="flex flex-wrap items-baseline gap-x-3 px-5 py-3.5 text-[15px]">
                     <span className="font-medium">{m?.name}</span>
-                    <span className="text-muted">{f.rootCause}</span>
-                    <span className="ml-auto text-xs text-muted">
-                      fixed in {Math.max(1, Math.round(((f.resolvedAt ?? f.createdAt) - f.createdAt) / 60000))} min
-                    </span>
+                    <span className="min-w-0 flex-1 truncate text-muted">{f.rootCause}</span>
+                    <span className="text-[13px] text-muted">{Math.max(1, Math.round(((f.resolvedAt ?? f.createdAt) - f.createdAt) / 60000))} min</span>
                   </li>
                 );
               })}
@@ -141,8 +156,8 @@ export default function WorkOrdersPage() {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <div className="text-xs uppercase tracking-wider text-muted">{label}</div>
-      <div>{children}</div>
+      <dt className="text-[13px] text-muted">{label}</dt>
+      <dd className="mt-0.5 leading-snug">{children}</dd>
     </div>
   );
 }

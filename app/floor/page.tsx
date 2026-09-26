@@ -45,174 +45,194 @@ export default function FloorPage() {
     : null;
   const sel = state.machines.find((m) => m.id === selected);
 
+  const attention = counts.fault + counts.down;
+  const summary =
+    replay.hour !== null
+      ? "Replaying last week"
+      : attention === 0 && counts.tech === 0
+        ? "Everything is running"
+        : [attention && `${attention} need${attention === 1 ? "s" : ""} attention`, counts.tech && `${counts.tech} with a technician`].filter(Boolean).join(" · ");
+
   return (
     <div className="flex min-h-screen flex-col">
-      <header className="flex flex-wrap items-center gap-x-6 gap-y-3 border-b border-line px-4 py-3 sm:px-6">
-        <Link href="/" aria-label="FaultLine home"><Logo /></Link>
-        <div className="text-sm text-muted">
-          Kauri Timber Co. · Christchurch plant <span className="mx-1">·</span>
-          <span className="font-mono tabular-nums text-text">{now ? new Date(now).toLocaleTimeString("en-NZ", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "--:--:--"}</span>
+      <header className="glass sticky top-0 z-40 border-b border-line/70">
+        <div className="mx-auto flex h-14 max-w-[1400px] items-center gap-4 px-5">
+          <Link href="/" aria-label="FaultLine home">
+            <Logo />
+          </Link>
+          <span className="hidden text-[13px] text-muted md:block">Kauri Timber Co.</span>
+          <div className="ml-auto flex items-center gap-1 rounded-full bg-panel-2 p-1 text-[13px]" role="group" aria-label="Floor tools">
+            <Seg active={showQr} onClick={() => setShowQr((v) => !v)}>QR codes</Seg>
+            <Seg active={replay.running} onClick={() => (replay.running ? replay.stop() : startReplay())}>
+              {replay.running ? "Stop replay" : "Replay week"}
+            </Seg>
+            <Seg active={simOpen} onClick={() => setSimOpen((v) => !v)}>Simulator</Seg>
+          </div>
+          <Link href="/work-orders" className="hidden items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] font-medium text-accent hover:bg-accent/10 sm:flex">
+            Work orders
+            {openFaults.length > 0 && <span className="grid min-w-5 place-items-center rounded-full bg-accent px-1.5 text-[11px] text-white">{openFaults.length}</span>}
+          </Link>
+          <Link href="/qr" className="hidden rounded-full px-3 py-1.5 text-[13px] font-medium text-accent hover:bg-accent/10 lg:block">
+            Print QR
+          </Link>
         </div>
-        <nav className="ml-auto flex flex-wrap items-center gap-2 text-sm">
-          <span className={`flex items-center gap-1.5 rounded-full px-2 py-1 text-xs ${online ? "text-ok" : "text-bad"}`}>
-            <span className={`size-2 rounded-full ${online ? "bg-ok" : "bg-bad"}`} /> {online ? "Live" : "Offline"}
-          </span>
-          <button type="button" onClick={() => setShowQr((v) => !v)} className={`rounded-lg border px-3 py-1.5 ${showQr ? "border-accent bg-accent text-black" : "border-line hover:border-muted"}`}>
-            {showQr ? "Hide QR codes" : "Show QR codes"}
-          </button>
-          <button type="button" onClick={() => (replay.running ? replay.stop() : startReplay())} className="rounded-lg border border-line px-3 py-1.5 hover:border-muted">
-            {replay.running ? "Stop replay" : "Replay last week"}
-          </button>
-          <button type="button" onClick={() => setSimOpen((v) => !v)} className={`rounded-lg border px-3 py-1.5 ${simOpen ? "border-accent text-accent" : "border-line hover:border-muted"}`}>
-            Simulator
-          </button>
-          <Link href="/qr" className="rounded-lg border border-line px-3 py-1.5 hover:border-muted">
-            QR sheet
-          </Link>
-          <Link href="/work-orders" className="rounded-lg border border-line px-3 py-1.5 hover:border-muted">
-            Work orders{openFaults.length ? <span className="ml-1.5 rounded-full bg-tech px-1.5 text-xs text-white">{openFaults.length}</span> : null}
-          </Link>
-        </nav>
       </header>
 
-      <main className="grid flex-1 gap-4 p-4 sm:p-6 xl:grid-cols-[1fr_340px]">
-        <section className="flex min-w-0 flex-col gap-4">
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <Kpi label="Running" value={`${counts.running}/${machines.length}`} color="var(--ok)" />
-            <Kpi label="Faults" value={counts.fault + counts.down} color={counts.fault + counts.down ? "var(--bad)" : "var(--muted)"} />
-            <Kpi label="Technician jobs" value={counts.tech} color={counts.tech ? "var(--tech)" : "var(--muted)"} />
-            <Kpi label="Avg time to fix" value={mttr === null ? "–" : `${mttr} min`} color="var(--accent)" />
+      <main className="mx-auto grid w-full max-w-[1400px] flex-1 gap-6 px-5 py-8 xl:grid-cols-[1fr_360px]">
+        <section className="flex min-w-0 flex-col gap-5">
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <h1 className="text-[32px] font-semibold leading-tight">Christchurch plant</h1>
+              <p className="mt-1 flex items-center gap-2 text-[17px] text-muted">
+                <span className={`size-2 rounded-full ${online ? "bg-ok" : "bg-bad"}`} aria-hidden />
+                {online ? summary : "Reconnecting…"}
+              </p>
+            </div>
+            <dl className="flex gap-8 text-right">
+              <Stat label="Running" value={`${counts.running}/${machines.length}`} />
+              <Stat label="Open faults" value={String(openFaults.length)} />
+              <Stat label="Avg fix" value={mttr === null ? "–" : `${mttr} min`} />
+              <Stat label="Time" value={now ? new Date(now).toLocaleTimeString("en-NZ", { hour: "2-digit", minute: "2-digit" }) : "--:--"} />
+            </dl>
           </div>
 
           {replay.hour !== null && <ReplayBar hour={replay.hour} onStop={replay.stop} />}
 
           <FloorPlan machines={machines} showQr={showQr} origin={origin} selected={selected} onSelect={(id) => setSelected((s) => (s === id ? undefined : id))} />
 
-          <div className="flex flex-wrap gap-4 text-xs text-muted">
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-[13px] text-muted">
             {(Object.keys(STATUS) as (keyof typeof STATUS)[]).map((k) => (
               <span key={k} className="flex items-center gap-1.5">
                 <StatusDot status={k} /> {STATUS[k].label}
               </span>
             ))}
-            <span className="ml-auto">Scan a machine&apos;s QR code to report a fault from your phone.</span>
+            <span className="ml-auto">Scan a machine&apos;s code to report a fault.</span>
           </div>
 
           {sel && (
-            <div className="fade-in flex flex-wrap items-center gap-4 rounded-xl border border-line bg-panel p-4">
-              <span style={{ color: STATUS[sel.status].color }}>
-                <MachineIcon kind={sel.kind} className="size-9" />
+            <div className="fade-in flex flex-wrap items-center gap-4 rounded-[22px] bg-panel p-5 shadow-card">
+              <span className="grid size-12 place-items-center rounded-2xl bg-panel-2" style={{ color: STATUS[sel.status].color }}>
+                <MachineIcon kind={sel.kind} className="size-7" />
               </span>
               <div className="min-w-0 flex-1">
-                <div className="font-semibold">
-                  {sel.name} <span className="font-normal text-muted">· {sel.model} · {sel.location}</span>
+                <div className="text-[17px] font-semibold">{sel.name}</div>
+                <div className="truncate text-[14px] text-muted">
+                  {sel.model} · {sel.location} · {sel.manual}
                 </div>
-                <div className="text-sm text-muted">Manual: {sel.manual}</div>
               </div>
-              <Link href={`/m/${sel.id}`} target="_blank" className="rounded-lg bg-accent px-3 py-2 text-sm font-semibold text-black">
+              <Link href={`/m/${sel.id}`} target="_blank" className="rounded-full bg-accent px-4 py-2 text-[14px] font-medium text-white">
                 Open operator view
               </Link>
             </div>
           )}
         </section>
 
-        <aside className="flex flex-col gap-4">
+        <aside className="flex flex-col gap-6">
           {simOpen && (
-            <Panel title="Simulator" action={<button type="button" onClick={() => dispatch({ type: "reset" })} className="text-xs text-muted hover:text-text">Reset floor</button>}>
-              <p className="mb-3 text-xs text-muted">Put a fault on a machine&apos;s display. The operator then reports it by scanning its QR code.</p>
-              <div className="grid gap-2">
-                {FAULT_CARDS.map((c) => {
-                  const m = state.machines.find((x) => x.id === c.machineId);
-                  return (
-                    <button key={c.id} type="button" onClick={() => dispatch({ type: "inject", cardId: c.id })} className="flex items-center gap-3 rounded-lg border border-line bg-panel-2 px-3 py-2 text-left text-sm hover:border-bad/60">
-                      {m && <MachineIcon kind={m.kind} className="size-5 shrink-0 text-muted" />}
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate font-medium">{m?.name} · {c.label}</span>
-                        <span className="block truncate text-xs text-muted">{c.code ?? "No code: symptom only"}</span>
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </Panel>
+            <Group title="Simulator" action={<button type="button" onClick={() => dispatch({ type: "reset" })} className="text-[13px] text-accent">Reset floor</button>}>
+              {FAULT_CARDS.map((c) => {
+                const m = state.machines.find((x) => x.id === c.machineId);
+                return (
+                  <button key={c.id} type="button" onClick={() => dispatch({ type: "inject", cardId: c.id })} className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-panel-2">
+                    {m && <MachineIcon kind={m.kind} className="size-5 shrink-0 text-muted" />}
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[15px]">{m?.name} · {c.label}</span>
+                      <span className="block truncate text-[13px] text-muted">{c.code ?? "Symptom only"}</span>
+                    </span>
+                    <span className="text-[13px] text-accent">Trigger</span>
+                  </button>
+                );
+              })}
+            </Group>
           )}
 
           {showInsights && (
-            <Panel title="Insights" action={<button type="button" onClick={() => setShowInsights(false)} className="text-xs text-muted hover:text-text">Hide</button>}>
-              <div className="grid gap-3">
-                {(insights ?? INSIGHTS).map((i) => (
-                  <div key={i.title} className="fade-in rounded-lg border border-accent/40 bg-accent/5 p-3">
-                    <div className="text-sm font-semibold text-accent">{i.title}</div>
-                    <p className="mt-1 text-xs text-muted">{i.evidence}</p>
-                    <p className="mt-2 text-sm">{i.recommendation}</p>
+            <Group title="Insights" action={<button type="button" onClick={() => setShowInsights(false)} className="text-[13px] text-accent">Hide</button>}>
+              {(insights ?? INSIGHTS).map((i) => (
+                <div key={i.title} className="fade-in px-4 py-4">
+                  <div className="text-[15px] font-semibold leading-snug">{i.title}</div>
+                  <p className="mt-1 text-[13px] leading-relaxed text-muted">{i.evidence}</p>
+                  <p className="mt-2 text-[14px] leading-relaxed">{i.recommendation}</p>
+                </div>
+              ))}
+            </Group>
+          )}
+
+          <Group title="Needs attention">
+            {openFaults.length === 0 ? (
+              <p className="px-4 py-4 text-[15px] text-muted">Nothing open. Every machine is running.</p>
+            ) : (
+              openFaults.map((f) => {
+                const m = state.machines.find((x) => x.id === f.machineId);
+                return (
+                  <div key={f.id} className="px-4 py-3.5">
+                    <div className="flex items-center gap-2">
+                      {m && <StatusDot status={m.status} />}
+                      <span className="text-[15px] font-medium">{m?.name}</span>
+                      <span className="ml-auto text-[13px] text-muted">{now ? timeAgo(f.createdAt, now) : ""}</span>
+                    </div>
+                    <p className="mt-1 line-clamp-2 text-[14px] text-muted">{f.triage.summary}</p>
+                    <p className="mt-1 text-[13px] capitalize text-muted">
+                      {f.status.replace("_", " ")}
+                      {f.assignee ? ` · ${f.assignee}` : ""}
+                    </p>
+                  </div>
+                );
+              })
+            )}
+          </Group>
+
+          <Group title="Activity">
+            {state.feed.length === 0 ? (
+              <p className="px-4 py-4 text-[15px] text-muted">Events appear here as they happen.</p>
+            ) : (
+              <div className="max-h-80 overflow-y-auto">
+                {state.feed.map((e) => (
+                  <div key={e.id} className="fade-in flex gap-3 px-4 py-3 text-[14px]">
+                    <span className={`mt-1.5 size-2 shrink-0 rounded-full ${e.tone === "bad" ? "bg-bad" : e.tone === "warn" ? "bg-warn" : e.tone === "good" ? "bg-ok" : "bg-tech"}`} aria-hidden />
+                    <span className="min-w-0 flex-1 leading-snug">{e.text}</span>
+                    <span className="shrink-0 text-[12px] text-muted">{now ? timeAgo(e.at, now) : ""}</span>
                   </div>
                 ))}
               </div>
-            </Panel>
-          )}
-
-          <Panel title="Open faults">
-            {openFaults.length === 0 ? (
-              <p className="text-sm text-muted">No open faults. Everything is running.</p>
-            ) : (
-              <ul className="grid gap-2">
-                {openFaults.map((f) => {
-                  const m = state.machines.find((x) => x.id === f.machineId);
-                  return (
-                    <li key={f.id} className="rounded-lg border border-line bg-panel-2 p-3 text-sm">
-                      <div className="flex items-center gap-2">
-                        {m && <StatusDot status={m.status} />}
-                        <span className="font-medium">{m?.name}</span>
-                        <span className="ml-auto text-xs text-muted">{now ? timeAgo(f.createdAt, now) : ""}</span>
-                      </div>
-                      <div className="mt-1 text-muted">{f.triage.summary}</div>
-                      <div className="mt-1 text-xs capitalize text-muted">{f.status.replace("_", " ")}{f.assignee ? ` · ${f.assignee}` : ""}</div>
-                    </li>
-                  );
-                })}
-              </ul>
             )}
-          </Panel>
-
-          <Panel title="Live feed">
-            {state.feed.length === 0 ? (
-              <p className="text-sm text-muted">Events will appear here as they happen.</p>
-            ) : (
-              <ul className="grid max-h-80 gap-2 overflow-y-auto pr-1">
-                {state.feed.map((e) => (
-                  <li key={e.id} className="fade-in flex gap-2 text-sm">
-                    <span className={`mt-1.5 size-2 shrink-0 rounded-full ${e.tone === "bad" ? "bg-bad" : e.tone === "warn" ? "bg-warn" : e.tone === "good" ? "bg-ok" : "bg-tech"}`} />
-                    <span className="min-w-0 flex-1">{e.text}</span>
-                    <span className="shrink-0 text-xs text-muted">{now ? timeAgo(e.at, now) : ""}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Panel>
+          </Group>
         </aside>
       </main>
     </div>
   );
 }
 
-function Kpi({ label, value, color }: { label: string; value: string | number; color: string }) {
+function Seg({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
-    <div className="rounded-xl border border-line bg-panel px-4 py-3">
-      <div className="text-xs uppercase tracking-wider text-muted">{label}</div>
-      <div className="mt-1 text-2xl font-semibold tabular-nums" style={{ color }}>
-        {value}
-      </div>
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={`rounded-full px-3 py-1 font-medium transition-all ${active ? "bg-panel text-text shadow-card" : "text-muted hover:text-text"}`}
+    >
+      {children}
+    </button>
+  );
+}
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <dt className="text-[12px] text-muted">{label}</dt>
+      <dd className="font-display text-[22px] font-semibold tabular-nums tracking-tight">{value}</dd>
     </div>
   );
 }
 
-function Panel({ title, action, children }: { title: string; action?: React.ReactNode; children: React.ReactNode }) {
+function Group({ title, action, children }: { title: string; action?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <section className="rounded-xl border border-line bg-panel p-4">
-      <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-xs font-semibold uppercase tracking-widest text-muted">{title}</h2>
+    <section>
+      <div className="mb-2 flex items-center justify-between px-1">
+        <h2 className="text-[20px] font-semibold">{title}</h2>
         {action}
       </div>
-      {children}
+      <div className="divide-y divide-line overflow-hidden rounded-[22px] bg-panel shadow-card">{children}</div>
     </section>
   );
 }

@@ -24,67 +24,69 @@ export function FloorPlan({ machines, showQr, origin, selected, onSelect }: Prop
   const dustOn = running("dust");
 
   return (
-    <div className="relative w-full overflow-hidden rounded-2xl border border-line bg-[#0c1219]" style={{ aspectRatio: `${W} / ${H}` }}>
+    <div className="relative w-full overflow-hidden rounded-[28px] bg-panel shadow-card" style={{ aspectRatio: `${W} / ${H}` }}>
       <svg viewBox={`0 0 ${W} ${H}`} className="absolute inset-0 size-full" aria-hidden>
         <defs>
-          <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
-            <path d="M20 0H0V20" fill="none" stroke="#16202b" strokeWidth="1" />
+          <pattern id="dots" width="24" height="24" patternUnits="userSpaceOnUse">
+            <circle cx="1.5" cy="1.5" r="1.2" fill="var(--line)" />
           </pattern>
         </defs>
-        <rect width={W} height={H} fill="url(#grid)" />
-        <rect x="16" y="16" width={W - 32} height={H - 32} rx="14" fill="none" stroke="#2a3a4d" strokeWidth="2" />
+        <rect width={W} height={H} fill="url(#dots)" />
 
         {/* zones */}
-        <rect x="30" y="100" width="940" height="200" rx="10" fill="#0f1822" stroke="#1d2a38" />
-        <text x="44" y="122" className="fill-[#5b6b7c] text-[12px] tracking-[0.2em]">PRODUCTION LINE</text>
-        <rect x="120" y="370" width="530" height="190" rx="10" fill="#0f1822" stroke="#1d2a38" />
-        <text x="134" y="392" className="fill-[#5b6b7c] text-[12px] tracking-[0.2em]">PLANT ROOM</text>
-        <rect x="760" y="370" width="210" height="190" rx="10" fill="#0f1822" stroke="#1d2a38" strokeDasharray="6 5" />
-        <text x="774" y="392" className="fill-[#5b6b7c] text-[12px] tracking-[0.2em]">DISPATCH</text>
-        <text x="865" y="480" textAnchor="middle" className="fill-[#3d4c5c] text-[13px]">Loading bay</text>
+        <rect x="30" y="96" width="940" height="208" rx="22" fill="var(--panel-2)" />
+        <text x="52" y="126" fill="var(--muted)" fontSize="14" fontWeight="600">Production line</text>
+        <rect x="120" y="372" width="530" height="196" rx="22" fill="var(--panel-2)" />
+        <text x="142" y="402" fill="var(--muted)" fontSize="14" fontWeight="600">Plant room</text>
+        <rect x="760" y="372" width="210" height="196" rx="22" fill="none" stroke="var(--line)" strokeWidth="1.5" strokeDasharray="6 6" />
+        <text x="782" y="402" fill="var(--muted)" fontSize="14" fontWeight="600">Dispatch</text>
+        <text x="865" y="486" textAnchor="middle" fill="var(--muted)" fontSize="13" opacity="0.7">Loading bay</text>
 
-        {/* compressed air line */}
-        <path d="M230 405V330H490V262" fill="none" stroke="#1e3a5f" strokeWidth="6" strokeLinecap="round" />
-        <path d="M230 405V330H490V262" fill="none" stroke="#60a5fa" strokeWidth="2" strokeDasharray="4 11" className={compressorOn ? "pipe-flow" : ""} opacity={compressorOn ? 0.9 : 0.25} />
-        <path d="M230 330H110V262" fill="none" stroke="#1e3a5f" strokeWidth="6" strokeLinecap="round" />
-        <path d="M230 330H110V262" fill="none" stroke="#60a5fa" strokeWidth="2" strokeDasharray="4 11" className={compressorOn ? "pipe-flow" : ""} opacity={compressorOn ? 0.9 : 0.25} />
-        <text x="300" y="322" className="fill-[#4f79a8] text-[11px]">compressed air</text>
+        {/* compressed air */}
+        <g opacity={compressorOn ? 1 : 0.35}>
+          <path d="M230 405V330H490V262M230 330H110V262" fill="none" stroke="var(--tech)" strokeOpacity="0.14" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M230 405V330H490V262M230 330H110V262" fill="none" stroke="var(--tech)" strokeWidth="2" strokeDasharray="3 12" strokeLinecap="round" className={compressorOn ? "pipe-flow" : ""} />
+          <text x="300" y="322" fill="var(--tech)" fontSize="12">Compressed air</text>
+        </g>
 
-        {/* dust extraction duct (flows toward the extractor) */}
-        <path d="M110 262V350H520V405" fill="none" stroke="#3b2f1c" strokeWidth="9" strokeLinecap="round" />
-        <path d="M110 262V350H520V405" fill="none" stroke="#d6a45c" strokeWidth="2" strokeDasharray="3 12" className={dustOn ? "pipe-flow" : ""} opacity={dustOn ? 0.85 : 0.25} />
-        <text x="560" y="345" className="fill-[#8a6a3d] text-[11px]">dust extraction</text>
+        {/* dust extraction */}
+        <g opacity={dustOn ? 1 : 0.35}>
+          <path d="M110 262V350H520V405" fill="none" stroke="var(--warn)" strokeOpacity="0.12" strokeWidth="10" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M110 262V350H520V405" fill="none" stroke="var(--warn)" strokeWidth="2" strokeDasharray="3 12" strokeLinecap="round" className={dustOn ? "pipe-flow" : ""} />
+          <text x="560" y="345" fill="var(--warn)" fontSize="12">Dust extraction</text>
+        </g>
 
-        {/* conveyors between line machines */}
+        {/* conveyors */}
         {LINE.slice(0, -1).map((id, i) => {
           const a = byId[id];
           const b = byId[LINE[i + 1]];
           if (!a || !b) return null;
-          const x1 = a.x + 62;
-          const x2 = b.x - 62;
+          const x1 = a.x + 64;
+          const x2 = b.x - 64;
           const flowing = running(id) && running(b.id);
           return (
             <g key={id}>
-              <rect x={x1} y={193} width={x2 - x1} height={14} rx={7} fill="#1a2532" stroke="#2b3b4e" />
-              <line x1={x1 + 6} y1={200} x2={x2 - 6} y2={200} stroke="#3c5068" strokeWidth="2" strokeDasharray="6 6" className={flowing ? "belt-run" : ""} />
+              <rect x={x1} y={194} width={x2 - x1} height={12} rx={6} fill="var(--line)" />
+              <line x1={x1 + 6} y1={200} x2={x2 - 6} y2={200} stroke="var(--muted)" strokeOpacity="0.35" strokeWidth="1.5" strokeDasharray="4 8" className={flowing ? "belt-run" : ""} />
               {flowing ? (
                 [0, 1].map((k) => (
-                  <rect key={k} y={189} width={14} height={10} rx={2} fill="#c89b62">
-                    <animate attributeName="x" from={x1 + 2} to={x2 - 16} dur="2.4s" begin={`${k * 1.2}s`} repeatCount="indefinite" />
+                  <rect key={k} x={x1 + 2} y={191} width={14} height={9} rx={2.5} fill="#c8a27a" opacity={0}>
+                    <set attributeName="opacity" to="1" begin={`${k * 1.3}s`} />
+                    <animate attributeName="x" from={x1 + 2} to={x2 - 16} dur="2.6s" begin={`${k * 1.3}s`} repeatCount="indefinite" />
                   </rect>
                 ))
               ) : (
-                <rect x={x2 - 20} y={189} width={14} height={10} rx={2} fill="#6b5436" />
+                <rect x={x2 - 20} y={191} width={14} height={9} rx={2.5} fill="#c8a27a" opacity="0.5" />
               )}
             </g>
           );
         })}
 
         {/* packing to dispatch */}
-        <rect x="873" y="262" width="14" height="150" rx="7" fill="#1a2532" stroke="#2b3b4e" />
+        <rect x="874" y="262" width="12" height="150" rx="6" fill="var(--line)" />
         {running("packing") && (
-          <rect x="875" width="10" height="14" rx="2" fill="#c89b62">
-            <animate attributeName="y" from="266" to="396" dur="2.2s" repeatCount="indefinite" />
+          <rect x="875.5" width="9" height="14" rx="2.5" fill="#c8a27a">
+            <animate attributeName="y" from="266" to="396" dur="2.4s" repeatCount="indefinite" />
           </rect>
         )}
       </svg>
@@ -99,24 +101,24 @@ export function FloorPlan({ machines, showQr, origin, selected, onSelect }: Prop
               type="button"
               onClick={() => onSelect(m.id)}
               aria-label={`${m.name}, ${st.label}`}
-              className={`absolute left-0 top-0 w-[clamp(96px,12.2vw,140px)] rounded-xl border-2 bg-panel/95 px-2.5 py-2 text-left shadow-lg transition-colors ${m.status === "down" ? "shake" : "-translate-x-1/2 -translate-y-1/2"} ${m.status !== "running" ? "pulse-ring" : ""} ${isSel ? "ring-2 ring-accent" : ""}`}
-              style={{ borderColor: st.color, ["--ring" as string]: st.color }}
+              className={`absolute left-0 top-0 w-[clamp(100px,12.4vw,148px)] rounded-[18px] bg-panel px-3 py-2.5 text-left shadow-card transition-shadow hover:shadow-float ${m.status === "down" ? "shake" : "-translate-x-1/2 -translate-y-1/2"} ${m.status !== "running" ? "pulse-ring" : ""} ${isSel ? "ring-2 ring-accent" : m.status === "running" ? "ring-1 ring-line" : ""}`}
+              style={{ ["--ring" as string]: st.color, ...(m.status !== "running" && !isSel ? { outline: `2px solid ${st.color}`, outlineOffset: 0 } : {}) }}
             >
-              <div className="flex items-center justify-between gap-1" style={{ color: st.color }}>
-                <MachineIcon kind={m.kind} className="size-6 shrink-0" />
-                <span className="rounded-full px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide" style={{ background: `color-mix(in oklab, ${st.color} 18%, transparent)` }}>
-                  {m.status === "running" ? "OK" : m.status === "tech" ? "Tech" : m.status === "down" ? "Down" : "Fault"}
-                </span>
+              <div className="flex items-center justify-between gap-1">
+                <MachineIcon kind={m.kind} className="size-[22px] shrink-0 text-muted" />
+                <span className="size-2.5 rounded-full" style={{ background: st.color }} aria-hidden />
               </div>
-              <div className="mt-1 truncate text-[13px] font-semibold leading-tight">{m.name}</div>
-              <div className="truncate text-[11px] text-muted">{card?.code ?? card?.label ?? m.model}</div>
+              <div className="mt-1.5 truncate text-[14px] font-semibold leading-tight">{m.name}</div>
+              <div className="truncate text-[12px]" style={{ color: m.status === "running" ? "var(--muted)" : st.color }}>
+                {m.status === "running" ? m.model : card?.code ?? card?.label ?? st.label}
+              </div>
             </button>
             {showQr && (
               <a
                 href={`/m/${m.id}`}
                 target="_blank"
                 rel="noreferrer"
-                className={`fade-in absolute w-[clamp(64px,7vw,92px)] rounded-lg bg-white p-1.5 shadow-xl ${m.y > H / 2 ? "left-[clamp(56px,6.6vw,78px)] top-0 -translate-y-1/2" : "left-0 top-[clamp(44px,5.4vw,60px)] -translate-x-1/2"}`}
+                className={`fade-in absolute w-[clamp(64px,7vw,92px)] rounded-2xl bg-white p-2 shadow-float ring-1 ring-black/5 ${m.y > H / 2 ? "left-[clamp(56px,6.6vw,78px)] top-0 -translate-y-1/2" : "left-0 top-[clamp(44px,5.4vw,60px)] -translate-x-1/2"}`}
                 aria-label={`Operator link for ${m.name}`}
               >
                 <QRCodeSVG value={`${origin}/m/${m.id}`} className="h-auto w-full" level="M" />

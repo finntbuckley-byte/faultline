@@ -1,146 +1,233 @@
 import Link from "next/link";
 import { Logo } from "@/components/ui";
 
+export const metadata = {
+  title: "FaultLine: the manual, on shift",
+  description: "Scan the machine. Say what's wrong. Get the fix, straight from the manual, with the page to prove it.",
+};
+
 const STEPS = [
-  {
-    n: "1",
-    title: "Scan the machine",
-    body: "Every machine gets a QR sticker. The operator scans it with their phone. No app and no login.",
-  },
-  {
-    n: "2",
-    title: "Say or snap the fault",
-    body: "Photograph the error screen, say what's happening, or type it. FaultLine reads the code off the display.",
-  },
-  {
-    n: "3",
-    title: "Fix it from the manual",
-    body: "Safety step first, then fix steps pulled from that machine's own manual, each citing the page it came from.",
-  },
+  { text: "Hit Unlock in Candle to clear the Alarm state.", page: 42 },
+  { text: "Set the jog step to 10.", page: 42 },
+  { text: "Jog away from the activated limit switch.", page: 42 },
+  { text: "Run a homing cycle to restore position.", page: 42 },
 ];
 
-const FEATURES = [
-  ["Grounded, never guessed", "Every step cites the page and passage it came from. If the manual doesn't cover the fault, FaultLine says so and escalates."],
-  ["Work orders that write themselves", "Escalate in one tap. The technician gets the symptom, photo, what was already tried, the likely cause and the parts to bring."],
-  ["A live floor", "Every machine on one screen, green to red in real time. Put it on the smoko-room TV."],
-  ["Knowledge that stays", "Every confirmed fix becomes a plant note that future triage uses. When your best fitter leaves, their fixes don't."],
-  ["Patterns you'd miss", "“CNC-01: 4 limit alarms this week, all night shift.” FaultLine spots repeat faults and tells you the root fix."],
-  ["Minutes to set up", "Upload the PDF manuals you already have and print the QR sheet. That's it."],
+function Chevron() {
+  return (
+    <svg viewBox="0 0 8 14" className="ml-1 inline size-[0.7em] -translate-y-px" aria-hidden>
+      <path d="M1.5 1.5 6.5 7l-5 5.5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+/** A quiet, device-like frame around a live-looking operator screen. */
+function Phone() {
+  return (
+    <div className="relative mx-auto w-[300px] rounded-[52px] text-left bg-[#1d1d1f] p-[10px] shadow-float ring-1 ring-black/10 sm:w-[320px]">
+      <div className="overflow-hidden rounded-[42px] bg-[#f5f5f7] text-[#1d1d1f]">
+        <div className="flex items-center justify-between px-7 pb-1 pt-3.5 text-[13px] font-semibold">
+          <span>2:04</span>
+          <span className="h-[26px] w-[92px] rounded-full bg-[#1d1d1f]" aria-hidden />
+          <span className="flex gap-1" aria-hidden>
+            <span className="h-2.5 w-4 rounded-[3px] border border-[#1d1d1f]/70" />
+          </span>
+        </div>
+        <div className="px-5 pb-6 pt-3">
+          <div className="text-[13px] text-[#6e6e73]">Bay 2 · Genmitsu 3018</div>
+          <div className="text-[28px] font-bold tracking-tight">CNC-01</div>
+          <div className="mt-3 rounded-2xl bg-white p-3.5 text-[13px] leading-snug shadow-[0_1px_2px_rgb(0_0_0/0.05)]">
+            <div className="mb-1 text-[11px] font-semibold text-[#d70015]">Safety first</div>
+            Don&apos;t force the gantry by hand. Jog it off the switch.
+          </div>
+          <div className="mt-2.5 divide-y divide-[#e3e3e8] overflow-hidden rounded-2xl bg-white shadow-[0_1px_2px_rgb(0_0_0/0.05)]">
+            {STEPS.map((s, i) => (
+              <div key={s.text} className="flex items-start gap-3 px-3.5 py-3 text-[13px] leading-snug">
+                <span className="mt-px grid size-5 shrink-0 place-items-center rounded-full bg-[#f5f5f7] text-[11px] font-semibold text-[#6e6e73]">{i + 1}</span>
+                <span className="flex-1">{s.text}</span>
+                <span className="shrink-0 text-[11px] font-medium text-[#0071e3]">p.{s.page}</span>
+              </div>
+            ))}
+          </div>
+          <div className="mt-3 grid grid-cols-2 gap-2 text-[14px] font-semibold">
+            <span className="rounded-xl bg-[#0071e3] py-2.5 text-center text-white">Fixed</span>
+            <span className="rounded-xl bg-white py-2.5 text-center text-[#0071e3]">Get a tech</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const TILES: { title: string; body: string; span?: string }[] = [
+  {
+    title: "Grounded. Never guessed.",
+    body: "Every step comes from the machine's own manual and links to the exact page and passage. If the manual doesn't cover it, FaultLine says so.",
+    span: "md:col-span-2",
+  },
+  { title: "No app. No login.", body: "Operators scan the sticker on the machine. That's the whole onboarding." },
+  { title: "Work orders that write themselves.", body: "Escalate once. The technician gets the photo, what's been tried, the likely cause and the parts to bring." },
+  {
+    title: "Knowledge that stays.",
+    body: "Every confirmed fix becomes a note FaultLine uses next time. When your best fitter leaves, their fixes don't.",
+    span: "md:col-span-2",
+  },
 ];
 
 const PLANS = [
-  { name: "Starter", price: "Free", unit: "", body: "Up to 3 machines, 1 site. Full triage and work orders.", cta: "Start free" },
-  { name: "Plant", price: "$19", unit: "per machine / month", body: "Unlimited users, insights, knowledge capture, alerts.", cta: "Try the demo", featured: true },
-  { name: "Multi-site", price: "Talk to us", unit: "", body: "Several plants, sensor/PLC bridge, SSO and custom retention.", cta: "Contact" },
+  { name: "Starter", price: "Free", note: "Up to 3 machines", items: ["Manual-grounded fixes", "Work orders", "Live floor"] },
+  { name: "Plant", price: "$19", note: "per machine, per month", items: ["Everything in Starter", "Pattern insights", "Knowledge capture", "Alerts"], featured: true },
+  { name: "Multi-site", price: "Let's talk", note: "For groups of plants", items: ["Everything in Plant", "Sensor and PLC bridge", "Single sign-on"] },
 ];
 
 export default function Landing() {
   return (
-    <div className="flex min-h-screen flex-col">
-      <header className="mx-auto flex w-full max-w-6xl items-center gap-4 px-4 py-4 sm:px-6">
-        <Logo />
-        <nav className="ml-auto flex items-center gap-2 text-sm">
-          <a href="#how" className="hidden rounded-lg px-3 py-1.5 text-muted hover:text-text sm:block">How it works</a>
-          <a href="#pricing" className="hidden rounded-lg px-3 py-1.5 text-muted hover:text-text sm:block">Pricing</a>
-          <Link href="/floor" className="rounded-lg bg-accent px-3 py-1.5 font-semibold text-black">
-            Open live demo
-          </Link>
-        </nav>
+    <div className="flex min-h-screen flex-col bg-panel">
+      <header className="glass sticky top-0 z-40 border-b border-line/60">
+        <div className="mx-auto flex h-12 max-w-[980px] items-center gap-6 px-5">
+          <Logo />
+          <nav className="ml-auto flex items-center gap-6 text-[13px] text-muted">
+            <a href="#how" className="hidden transition-colors hover:text-text sm:block">How it works</a>
+            <a href="#pricing" className="hidden transition-colors hover:text-text sm:block">Pricing</a>
+            <Link href="/floor" className="rounded-full bg-accent px-3.5 py-1 font-medium text-white transition-opacity hover:opacity-90">
+              Try the demo
+            </Link>
+          </nav>
+        </div>
       </header>
 
-      <main className="mx-auto w-full max-w-6xl px-4 sm:px-6">
-        <section className="grid items-center gap-10 py-14 lg:grid-cols-[1.1fr_1fr] lg:py-20">
-          <div>
-            <p className="mb-4 inline-block rounded-full border border-accent/40 bg-accent/10 px-3 py-1 text-xs font-semibold uppercase tracking-widest text-accent">
-              AI maintenance for small plants
-            </p>
-            <h1 className="text-4xl font-semibold leading-tight tracking-tight sm:text-5xl">
-              Every manual becomes a technician on shift.
-            </h1>
-            <p className="mt-5 max-w-xl text-lg text-muted">
-              When a machine faults at 2am, the operator is alone with a 200-page PDF. FaultLine turns that manual into safety-first fix steps
-              in seconds, and turns every fault into a work order and a record your plant learns from.
-            </p>
-            <div className="mt-8 flex flex-wrap gap-3">
-              <Link href="/floor" className="rounded-xl bg-accent px-5 py-3 font-semibold text-black">
-                See the live floor
-              </Link>
-              <Link href="/m/cnc-01" className="rounded-xl border border-line px-5 py-3 font-semibold hover:border-muted">
-                Try the operator view
-              </Link>
-            </div>
-            <p className="mt-4 text-sm text-muted">Demo plant: Kauri Timber Co., Christchurch. Real manuals, real AI.</p>
+      <main>
+        {/* Hero */}
+        <section className="overflow-hidden px-5 pb-20 pt-16 text-center sm:pt-24">
+          <p className="fade-in text-[17px] font-semibold text-muted">FaultLine</p>
+          <h1 className="fade-in mx-auto mt-2 max-w-[820px] text-[44px] font-semibold leading-[1.05] sm:text-[72px]" style={{ animationDelay: "60ms" }}>
+            The manual, on&nbsp;shift.
+          </h1>
+          <p className="fade-in mx-auto mt-5 max-w-[560px] text-[19px] leading-relaxed text-muted sm:text-[21px]" style={{ animationDelay: "120ms" }}>
+            Scan the machine. Say what&apos;s wrong. Get the fix, straight from the manual, with the page to prove it.
+          </p>
+          <div className="fade-in mt-8 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-[17px]" style={{ animationDelay: "180ms" }}>
+            <Link href="/floor" className="rounded-full bg-accent px-6 py-3 font-medium text-white transition-opacity hover:opacity-90">
+              Open the live floor
+            </Link>
+            <Link href="/m/cnc-01" className="font-medium text-accent hover:underline">
+              Try it on your phone
+              <Chevron />
+            </Link>
           </div>
+          <div className="fade-in mt-16" style={{ animationDelay: "260ms" }}>
+            <Phone />
+          </div>
+        </section>
 
-          <div className="rounded-2xl border border-line bg-panel p-5 shadow-2xl">
-            <div className="mb-3 flex items-center justify-between text-xs text-muted">
-              <span>CNC-01 · Operator</span>
-              <span className="rounded-full bg-warn/15 px-2 py-0.5 font-semibold text-warn">Fault reported</span>
-            </div>
-            <div className="rounded-xl border-2 border-bad/60 bg-bad/10 p-3 text-sm">
-              <div className="text-xs font-semibold uppercase tracking-widest text-bad">Safety first</div>
-              Don&apos;t force the gantry by hand. Use the jog controls to move off the limit switch.
-            </div>
-            <ol className="mt-3 grid gap-2 text-sm">
-              {["Hit Unlock in Candle to clear the Alarm state.", "Set the jog step to 10.", "Jog away from the activated limit switch.", "Run a homing cycle to restore position."].map((t, i) => (
-                <li key={t} className="flex items-start gap-3 rounded-lg border border-line bg-panel-2 p-3">
-                  <span className="grid size-6 shrink-0 place-items-center rounded-full bg-bg text-xs font-semibold">{i + 1}</span>
-                  <span className="flex-1">{t}</span>
-                  <span className="rounded-md border border-accent/50 px-1.5 text-xs text-accent">p.42</span>
+        {/* Numbers */}
+        <section className="border-y border-line bg-bg px-5 py-16">
+          <dl className="mx-auto grid max-w-[980px] gap-10 text-center sm:grid-cols-3">
+            {[
+              ["5 s", "from scan to fix steps"],
+              ["Every step", "cites its page in the manual"],
+              ["0", "forms for operators to fill in"],
+            ].map(([n, l]) => (
+              <div key={l}>
+                <dt className="font-display text-[40px] font-semibold tracking-tight sm:text-[48px]">{n}</dt>
+                <dd className="mt-1 text-[17px] text-muted">{l}</dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+
+        {/* How it works */}
+        <section id="how" className="px-5 py-24">
+          <div className="mx-auto max-w-[980px]">
+            <h2 className="max-w-[640px] text-[36px] font-semibold leading-tight sm:text-[48px]">
+              2am. One operator. <span className="text-muted">A 200&#8209;page&nbsp;PDF.</span>
+            </h2>
+            <p className="mt-5 max-w-[620px] text-[19px] leading-relaxed text-muted">
+              Small plants run on one fitter, if they&apos;re lucky. When a machine stops on night shift, the fix is usually in the manual. Nobody has time to find it.
+            </p>
+            <ol className="mt-14 grid gap-x-10 gap-y-12 sm:grid-cols-3">
+              {[
+                ["Scan", "Every machine gets a QR sticker. Point a phone at it, with no app to install."],
+                ["Tell it", "Photograph the error screen, say what's happening, or type it. FaultLine reads the code off the display."],
+                ["Fix it", "A safety step first, then the fix, pulled from that machine's own manual. Tap any step to see the page."],
+              ].map(([t, b], i) => (
+                <li key={t}>
+                  <div className="font-display text-[15px] font-semibold text-accent">Step {i + 1}</div>
+                  <h3 className="mt-2 text-[24px] font-semibold">{t}</h3>
+                  <p className="mt-2 text-[17px] leading-relaxed text-muted">{b}</p>
                 </li>
               ))}
             </ol>
           </div>
         </section>
 
-        <section id="how" className="border-t border-line py-14">
-          <h2 className="text-2xl font-semibold">How it works</h2>
-          <div className="mt-6 grid gap-4 md:grid-cols-3">
-            {STEPS.map((s) => (
-              <div key={s.n} className="rounded-2xl border border-line bg-panel p-5">
-                <div className="grid size-9 place-items-center rounded-lg bg-accent font-semibold text-black">{s.n}</div>
-                <h3 className="mt-4 font-semibold">{s.title}</h3>
-                <p className="mt-1 text-sm text-muted">{s.body}</p>
-              </div>
-            ))}
+        {/* Bento */}
+        <section className="bg-bg px-5 py-24">
+          <div className="mx-auto max-w-[980px]">
+            <h2 className="text-[36px] font-semibold leading-tight sm:text-[48px]">Made for the plant floor.</h2>
+            <div className="mt-12 grid gap-5 md:grid-cols-3">
+              {TILES.map((t) => (
+                <article key={t.title} className={`rounded-[28px] bg-panel p-8 shadow-card sm:p-10 ${t.span ?? ""}`}>
+                  <h3 className="text-[24px] font-semibold leading-snug">{t.title}</h3>
+                  <p className="mt-3 text-[17px] leading-relaxed text-muted">{t.body}</p>
+                </article>
+              ))}
+            </div>
           </div>
         </section>
 
-        <section className="border-t border-line py-14">
-          <h2 className="text-2xl font-semibold">Built for the plant floor</h2>
-          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {FEATURES.map(([t, b]) => (
-              <div key={t} className="rounded-2xl border border-line bg-panel p-5">
-                <h3 className="font-semibold">{t}</h3>
-                <p className="mt-1 text-sm text-muted">{b}</p>
-              </div>
-            ))}
-          </div>
+        {/* Dark statement */}
+        <section className="bg-[#000] px-5 py-28 text-center text-[#f5f5f7]">
+          <h2 className="mx-auto max-w-[760px] text-[36px] font-semibold leading-tight sm:text-[56px]">
+            &ldquo;CNC-01 has hit its Y limit four times this week. All on night shift.&rdquo;
+          </h2>
+          <p className="mx-auto mt-6 max-w-[560px] text-[19px] leading-relaxed text-[#a1a1a6]">
+            FaultLine spots repeat faults across the week and names the root fix, so the same alarm stops coming back.
+          </p>
+          <Link href="/floor" className="mt-8 inline-block text-[17px] font-medium text-[#2997ff] hover:underline">
+            Watch last week replay on the live floor
+            <Chevron />
+          </Link>
         </section>
 
-        <section id="pricing" className="border-t border-line py-14">
-          <h2 className="text-2xl font-semibold">Pricing</h2>
-          <p className="mt-1 text-muted">One avoided hour of downtime usually pays for a year. Prices in NZD, excl. GST.</p>
-          <div className="mt-6 grid gap-4 md:grid-cols-3">
-            {PLANS.map((p) => (
-              <div key={p.name} className={`flex flex-col rounded-2xl border p-5 ${p.featured ? "border-accent bg-accent/5" : "border-line bg-panel"}`}>
-                <h3 className="font-semibold">{p.name}</h3>
-                <div className="mt-3 text-3xl font-semibold">{p.price}</div>
-                <div className="h-5 text-sm text-muted">{p.unit}</div>
-                <p className="mt-3 flex-1 text-sm text-muted">{p.body}</p>
-                <Link href="/floor" className={`mt-5 rounded-xl py-2.5 text-center font-semibold ${p.featured ? "bg-accent text-black" : "border border-line"}`}>
-                  {p.cta}
-                </Link>
-              </div>
-            ))}
+        {/* Pricing */}
+        <section id="pricing" className="px-5 py-24">
+          <div className="mx-auto max-w-[980px]">
+            <h2 className="text-center text-[36px] font-semibold sm:text-[48px]">Simple pricing.</h2>
+            <p className="mt-3 text-center text-[19px] text-muted">One avoided hour of downtime usually pays for a year. NZD, excl. GST.</p>
+            <div className="mt-14 grid gap-5 md:grid-cols-3">
+              {PLANS.map((p) => (
+                <div key={p.name} className={`flex flex-col rounded-[28px] p-8 ${p.featured ? "bg-bg ring-2 ring-accent" : "bg-bg"}`}>
+                  <div className="text-[17px] font-semibold">{p.name}</div>
+                  <div className="mt-4 font-display text-[40px] font-semibold tracking-tight">{p.price}</div>
+                  <div className="text-[14px] text-muted">{p.note}</div>
+                  <ul className="mt-6 flex-1 space-y-2.5 text-[15px]">
+                    {p.items.map((it) => (
+                      <li key={it} className="flex gap-2.5">
+                        <svg viewBox="0 0 16 16" className="mt-1 size-3.5 shrink-0 text-accent" aria-hidden>
+                          <path d="m3 8.5 3 3 7-7" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                        {it}
+                      </li>
+                    ))}
+                  </ul>
+                  <Link
+                    href="/floor"
+                    className={`mt-8 rounded-full py-2.5 text-center text-[15px] font-medium transition-opacity hover:opacity-90 ${p.featured ? "bg-accent text-white" : "bg-panel text-accent"}`}
+                  >
+                    {p.featured ? "Try the demo" : "Get started"}
+                  </Link>
+                </div>
+              ))}
+            </div>
           </div>
         </section>
       </main>
 
-      <footer className="mt-auto border-t border-line">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-3 px-4 py-6 text-sm text-muted sm:px-6">
-          <Logo />
+      <footer className="border-t border-line bg-bg px-5 py-8 text-[12px] text-muted">
+        <div className="mx-auto flex max-w-[980px] flex-wrap items-center justify-between gap-3">
           <span>Built in 48 hours at SaaSathon 2, University of Canterbury.</span>
+          <span>Demo plant: Kauri Timber Co., Christchurch.</span>
         </div>
       </footer>
     </div>

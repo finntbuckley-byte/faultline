@@ -2,15 +2,15 @@ import type { Machine, MachineStatus, Severity } from "@/lib/types";
 
 export const STATUS: Record<MachineStatus, { label: string; color: string; text: string }> = {
   running: { label: "Running", color: "var(--ok)", text: "text-ok" },
-  fault: { label: "Fault reported", color: "var(--warn)", text: "text-warn" },
+  fault: { label: "Needs attention", color: "var(--warn)", text: "text-warn" },
   down: { label: "Down", color: "var(--bad)", text: "text-bad" },
-  tech: { label: "Technician", color: "var(--tech)", text: "text-tech" },
+  tech: { label: "Technician assigned", color: "var(--tech)", text: "text-tech" },
 };
 
 export const SEVERITY: Record<Severity, { label: string; className: string }> = {
-  operator_fixable: { label: "Operator can fix", className: "bg-warn/15 text-warn border-warn/40" },
-  needs_technician: { label: "Needs a technician", className: "bg-tech/15 text-tech border-tech/40" },
-  stop_now: { label: "Stop now", className: "bg-bad/15 text-bad border-bad/50" },
+  operator_fixable: { label: "You can fix this", className: "bg-ok/10 text-ok border-transparent" },
+  needs_technician: { label: "Needs a technician", className: "bg-tech/10 text-tech border-transparent" },
+  stop_now: { label: "Stop the machine", className: "bg-bad/10 text-bad border-transparent" },
 };
 
 export function StatusDot({ status }: { status: MachineStatus }) {
@@ -80,14 +80,13 @@ export function MachineIcon({ kind, className = "size-7" }: { kind: Machine["kin
   }
 }
 
-export function Logo() {
+export function Logo({ className = "" }: { className?: string }) {
   return (
-    <span className="flex items-center gap-2 font-semibold tracking-tight">
-      <span className="grid size-7 place-items-center rounded-md bg-accent text-black">
-        <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden>
-          <path d="M3 12h4l3-7 4 14 3-7h4" />
-        </svg>
-      </span>
+    <span className={`flex items-center gap-2 text-[17px] font-semibold tracking-tight ${className}`}>
+      <svg viewBox="0 0 24 24" className="size-[22px]" aria-hidden>
+        <rect width="24" height="24" rx="6.5" fill="currentColor" />
+        <path d="M4.5 12.5h3.2l2.2-5 3.6 10 2.3-5h3.7" fill="none" stroke="var(--bg)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
       FaultLine
     </span>
   );

@@ -57,18 +57,18 @@ export function ReplayBar({ hour, onStop }: { hour: number; onStop: () => void }
   const past = WEEK_HISTORY.filter((e) => e.hour <= hour);
   const downtime = past.reduce((sum, e) => sum + Math.min(e.durationHours, hour - e.hour), 0);
   return (
-    <div className="fade-in flex flex-wrap items-center gap-4 rounded-xl border border-accent/40 bg-accent/10 px-4 py-2.5">
-      <span className="text-xs font-semibold uppercase tracking-widest text-accent">Replay · last week</span>
-      <span className="font-mono text-lg tabular-nums">
+    <div className="fade-in flex flex-wrap items-center gap-x-5 gap-y-3 rounded-[22px] bg-panel px-5 py-3.5 shadow-card">
+      <span className="text-[15px] font-semibold">Last week</span>
+      <span className="font-display text-[17px] tabular-nums text-muted">
         {DAYS[day]} {String(hh).padStart(2, "0")}:00
       </span>
-      <div className="h-1.5 min-w-40 flex-1 overflow-hidden rounded-full bg-line">
-        <div className="h-full bg-accent" style={{ width: `${(hour / WEEK_H) * 100}%` }} />
+      <div className="h-1 min-w-40 flex-1 overflow-hidden rounded-full bg-panel-2">
+        <div className="h-full rounded-full bg-accent" style={{ width: `${(hour / WEEK_H) * 100}%` }} />
       </div>
-      <span className="text-sm text-muted">
-        <b className="text-text tabular-nums">{past.length}</b> faults · <b className="text-text tabular-nums">{downtime.toFixed(1)} h</b> downtime
+      <span className="text-[14px] text-muted">
+        <b className="font-semibold text-text tabular-nums">{past.length}</b> faults · <b className="font-semibold text-text tabular-nums">{downtime.toFixed(1)} h</b> down
       </span>
-      <button type="button" onClick={onStop} className="rounded-lg border border-line px-2.5 py-1 text-sm text-muted hover:text-text">
+      <button type="button" onClick={onStop} className="text-[14px] font-medium text-accent">
         Stop
       </button>
     </div>
